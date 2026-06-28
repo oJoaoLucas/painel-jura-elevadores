@@ -1,0 +1,361 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  supabase,
+  CONFIG_PADRAO,
+  type Elevador,
+  type ElevadorStatus,
+  type FilaItem,
+  type Lembrete,
+  type Config,
+  type Aguardando as AguardandoItem,
+} from "@/lib/supabase";
+import ElevadorCard from "@/components/ElevadorCard";
+import FilaAlinhamento from "@/components/FilaAlinhamento";
+import Lembretes from "@/components/Lembretes";
+import Aguardando from "@/components/Aguardando";
+import NavMenu from "@/components/NavMenu";
+import AuthGate from "@/components/AuthGate";
+
+export default function AdminPage() {
+  const [elevadores, setElevadores] = useState<Elevador[]>([]);
+  const [fila, setFila] = useState<FilaItem[]>([]);
+  const [lembretes, setLembretes] = useState<Lembrete[]>([]);
+  const [aguardando, setAguardando] = useState<AguardandoItem[]>([]);
+  const [config, setConfig] = useState<Config>(CONFIG_PADRAO);
+  const [agora, setAgora] = useState(new Date());
+
+  // ----- Recarregadores -----
+  const recarregarElevadores = () =>
+    supabase
+      .from("elevadores")
+      .select("*")
+      .order("id")
+      .then(({ data }) => data && setElevadores(data as Elevador[]));
+
+  const recarregarFila = () =>
+    supabase
+      .from("fila_alinhamento")
+      .select("*")
+      .order("ordem")
+      .then(({ data }) => data && setFila(data as FilaItem[]));
+
+  const recarregarLembretes = () =>
+    supabase
+      .from("lembretes")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => data && setLembretes(data as Lembrete[]));
+
+  const recarregarConfig = () =>
+    supabase
+      .from("config")
+      .select("*")
+      .eq("id", 1)
+      .single()
+      .then(({ data }) => data && setConfig(data as Config));
+
+  const recarregarAguardando = () =>
+    supabase
+      .from("aguardando")
+      .select("*")
+      .order("created_at")
+      .then(({ data }) => data && setAguardando(data as AguardandoItem[]));
+
+  // Relógio (pra mostrar tempo no elevador atualizando)
+  useEffect(() => {
+    const t = setInterval(() => setAgora(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    recarregarElevadores();
+    recarregarFila();
+    recarregarLembretes();
+    recarregarConfig();
+    recarregarAguardando();
+
+    const channel = supabase
+      .channel("admin-jura")
+      .on("postgres_changes", { event: "*", schema: "public", table: "elevadores" }, recarregarElevadores)
+      .on("postgres_changes", { event: "*", schema: "public", table: "fila_alinhamento" }, recarregarFila)
+      .on("postgres_changes", { event: "*", schema: "public", table: "lembretes" }, recarregarLembretes)
+      .on("postgres_changes", { event: "*", schema: "public", table: "config" }, recarregarConfig)
+      .on("postgres_changes", { event: "*", schema: "public", table: "aguardando" }, recarregarAguardando)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // ----- Elevadores -----
+  const ocuparElevador = async (
+    id: number,
+    dados: { placa: string; carro: string; servico: string; mecanico: string }
+  ) => {
+    const atual = elevadores.find((e) => e.id === id);
+    const eraLivre = !atual || atual.status === "livre";
+    await supabase
+      .from("elevadores")
+      .update({
+        status: atual && atual.status !== "livre" ? atual.status : "ocupado",
+        placa: dados.placa || null,
+        carro: dados.carro || null,
+        servico: dados.servico || null,
+        mecanico: dados.mecanico || null,
+        // só reseta o cronômetro quando o carro ENTRA (estava livre)
+        ocupado_em: eraLivre ? new Date().toISOString() : atual?.ocupado_em,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+    recarregarElevadores();
+  };
+
+  const mudarStatus = async (id: number, status: ElevadorStatus) => {
+    await supabase
+      .from("elevadores")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    recarregarElevadores();
+  };
+
+  const liberarElevador = async (id: number) => {
+    const el = elevadores.find((e) => e.id === id);
+    // Salva no histórico antes de limpar
+    if (el && (el.carro || el.placa)) {
+      await supabase.from("historico").insert({
+        elevador_id: id,
+        placa: el.placa,
+        carro: el.carro,
+        servico: el.servico,
+        mecanico: el.mecanico,
+        entrada: el.ocupado_em,
+        saida: new Date().toISOString(),
+      });
+    }
+    await supabase
+      .from("elevadores")
+      .update({
+        status: "livre",
+        placa: null,
+        carro: null,
+        servico: null,
+        mecanico: null,
+        ocupado_em: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+    recarregarElevadores();
+  };
+
+  // Carro pronto -> joga na fila de alinhamento e libera o elevador
+  const moverParaAlinhamento = async (id: number) => {
+    const el = elevadores.find((e) => e.id === id);
+    if (el && (el.carro || el.placa)) {
+      const maxOrdem = fila.reduce((m, i) => Math.max(m, i.ordem), 0);
+      await supabase.from("fila_alinhamento").insert({
+        placa: el.placa || "—",
+        carro: el.carro || "—",
+        ordem: maxOrdem + 1,
+      });
+    }
+    await liberarElevador(id);
+    recarregarFila();
+  };
+
+  // Tira o carro do elevador e devolve para "Carros aguardando" (sem ir pro histórico)
+  const voltarParaAguardando = async (id: number) => {
+    const el = elevadores.find((e) => e.id === id);
+    if (el && (el.carro || el.placa)) {
+      await supabase.from("aguardando").insert({
+        placa: el.placa,
+        carro: el.carro,
+        servico: el.servico,
+        mecanico: el.mecanico,
+      });
+    }
+    await supabase
+      .from("elevadores")
+      .update({
+        status: "livre",
+        placa: null,
+        carro: null,
+        servico: null,
+        mecanico: null,
+        ocupado_em: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+    recarregarElevadores();
+    recarregarAguardando();
+  };
+
+  // ----- Carros aguardando -----
+  const adicionarAguardando = async (dados: {
+    placa: string;
+    carro: string;
+    servico: string;
+    mecanico: string;
+  }) => {
+    await supabase.from("aguardando").insert({
+      placa: dados.placa || null,
+      carro: dados.carro || null,
+      servico: dados.servico || null,
+      mecanico: dados.mecanico || null,
+    });
+    recarregarAguardando();
+  };
+
+  const removerAguardando = async (id: string) => {
+    await supabase.from("aguardando").delete().eq("id", id);
+    recarregarAguardando();
+  };
+
+  // Joga um carro aguardando num elevador livre
+  const moverParaElevador = async (item: AguardandoItem, elevadorId: number) => {
+    await ocuparElevador(elevadorId, {
+      placa: item.placa || "",
+      carro: item.carro || "",
+      servico: item.servico || "",
+      mecanico: item.mecanico || "",
+    });
+    await supabase.from("aguardando").delete().eq("id", item.id);
+    recarregarAguardando();
+  };
+
+  // Manda um carro aguardando direto pra fila de alinhamento
+  const aguardandoParaAlinhamento = async (item: AguardandoItem) => {
+    const maxOrdem = fila.reduce((m, i) => Math.max(m, i.ordem), 0);
+    await supabase.from("fila_alinhamento").insert({
+      placa: item.placa || "—",
+      carro: item.carro || "—",
+      ordem: maxOrdem + 1,
+    });
+    await supabase.from("aguardando").delete().eq("id", item.id);
+    recarregarAguardando();
+    recarregarFila();
+  };
+
+  // ----- Fila -----
+  const adicionarFila = async (placa: string, carro: string) => {
+    const maxOrdem = fila.reduce((m, i) => Math.max(m, i.ordem), 0);
+    await supabase.from("fila_alinhamento").insert({ placa, carro, ordem: maxOrdem + 1 });
+    recarregarFila();
+  };
+
+  const removerFila = async (id: string) => {
+    await supabase.from("fila_alinhamento").delete().eq("id", id);
+    recarregarFila();
+  };
+
+  const moverFila = async (id: string, dir: "up" | "down") => {
+    const ordenados = [...fila].sort((a, b) => a.ordem - b.ordem);
+    const idx = ordenados.findIndex((i) => i.id === id);
+    if (idx === -1) return;
+    const alvo = dir === "up" ? idx - 1 : idx + 1;
+    if (alvo < 0 || alvo >= ordenados.length) return;
+    const a = ordenados[idx];
+    const b = ordenados[alvo];
+    await Promise.all([
+      supabase.from("fila_alinhamento").update({ ordem: b.ordem }).eq("id", a.id),
+      supabase.from("fila_alinhamento").update({ ordem: a.ordem }).eq("id", b.id),
+    ]);
+    recarregarFila();
+  };
+
+  // ----- Lembretes -----
+  const adicionarLembrete = async (
+    texto: string,
+    destinatario: string,
+    prioridade: "normal" | "urgente"
+  ) => {
+    await supabase
+      .from("lembretes")
+      .insert({ texto, destinatario: destinatario || null, prioridade });
+    recarregarLembretes();
+  };
+
+  const removerLembrete = async (id: string) => {
+    await supabase.from("lembretes").delete().eq("id", id);
+    recarregarLembretes();
+  };
+
+  // 4 slots garantidos
+  const slots: Elevador[] = [1, 2, 3, 4].map(
+    (id) =>
+      elevadores.find((e) => e.id === id) || {
+        id,
+        status: "livre",
+        placa: null,
+        carro: null,
+        servico: null,
+        mecanico: null,
+        ocupado_em: null,
+        updated_at: "",
+      }
+  );
+
+  const elevadoresLivres = slots
+    .filter((s) => s.status === "livre")
+    .map((s) => s.id);
+
+  return (
+    <AuthGate>
+    <main className="space-y-6 px-4 pb-12 sm:px-6">
+      <NavMenu titulo="Recepção" />
+
+      {/* 1. Elevadores (esquerda) + Carros aguardando (bloco à direita) */}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <section>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {slots.map((el) => (
+              <ElevadorCard
+                key={el.id}
+                elevador={el}
+                mode="admin"
+                agora={agora}
+                alertaHoras={config.alerta_horas}
+                onOcupar={ocuparElevador}
+                onStatus={mudarStatus}
+                onLiberar={liberarElevador}
+                onMoverAlinhamento={moverParaAlinhamento}
+                onVoltarAguardando={voltarParaAguardando}
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* Carros aguardando — bloco lateral */}
+        <Aguardando
+          itens={aguardando}
+          elevadoresLivres={elevadoresLivres}
+          onAdd={adicionarAguardando}
+          onRemove={removerAguardando}
+          onMover={moverParaElevador}
+          onMoverAlinhamento={aguardandoParaAlinhamento}
+          vertical
+        />
+      </div>
+
+      {/* Fila + Lembretes: empilhados na vertical, lado a lado só em tela larga */}
+      <div className="grid gap-6 xl:grid-cols-2">
+        <FilaAlinhamento
+          itens={fila}
+          mode="admin"
+          onAdd={adicionarFila}
+          onRemove={removerFila}
+          onMove={moverFila}
+        />
+        <Lembretes
+          lembretes={lembretes}
+          mode="admin"
+          onAdd={adicionarLembrete}
+          onRemove={removerLembrete}
+        />
+      </div>
+    </main>
+    </AuthGate>
+  );
+}

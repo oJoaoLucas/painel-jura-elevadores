@@ -1,0 +1,34 @@
+# ---- dependências ----
+/node_modules
+
+# ---- Next.js ----
+/.next/
+/out/
+/build
+next-env.d.ts
+*.tsbuildinfo
+
+# ---- variáveis de ambiente (nunca subir segredos) ----
+.env
+.env.local
+.env.*.local
+
+# ---- Vercel ----
+.vercel
+
+# ---- Claude Code (configurações locais) ----
+.claude/
+
+# ---- SO / editores ----
+.DS_Store
+Thumbs.db
+*.pem
+
+# ---- logs ----
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- áudios de voz opcionais (gerados localmente, não vão pro repo) ----
+/public/voz/*.mp3

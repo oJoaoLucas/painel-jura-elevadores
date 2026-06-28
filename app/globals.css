@@ -1,0 +1,128 @@
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  background-color: #181b20;
+  color: #eef1f4;
+  font-family: "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Fundo de chão de oficina: grafite com leve "varredura" diagonal de aço */
+body {
+  background-image: repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.018) 0px,
+      rgba(255, 255, 255, 0.018) 1px,
+      transparent 1px,
+      transparent 14px
+    ),
+    radial-gradient(
+      1200px 520px at 50% -15%,
+      rgba(209, 31, 31, 0.07),
+      transparent 70%
+    );
+  background-attachment: fixed;
+}
+
+/* Esconde scrollbar na TV mas mantém funcional no admin */
+.no-scroll {
+  overflow: hidden;
+}
+
+/* Foco visível e consistente em tudo que é interativo (acessibilidade) */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(209, 31, 31, 0.7);
+  outline-offset: 2px;
+}
+
+/* Eyebrow / título de seção — condensado, industrial */
+.eyebrow {
+  font-family: "Barlow Condensed", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Título de seção — condensado, com etiqueta vermelha à esquerda (estilo box) */
+.section-title {
+  font-family: "Barlow Condensed", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  color: #c2c8d0;
+  position: relative;
+  padding-left: 0.85rem;
+}
+.section-title::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 1.05em;
+  background: #d11f1f;
+  border-radius: 1px;
+}
+
+/* Plaquinha de placa de carro (estilo Mercosul simplificado) */
+.plate {
+  font-family: "Roboto Mono", monospace;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #eef1f4;
+  background: linear-gradient(#20242b, #181b20);
+  border: 1px solid #4a525e;
+  border-radius: 4px;
+  padding: 0.05em 0.4em;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  white-space: nowrap;
+}
+
+/* Número do box "pintado" no fundo do card */
+.bay-ghost {
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  line-height: 0.8;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Pulso verde — elevador "pronto" */
+@keyframes pulsa-pronto {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(34, 197, 94, 0);
+  }
+}
+.pulsa-pronto {
+  animation: pulsa-pronto 1.4s ease-in-out infinite;
+}
+
+/* Pulso âmbar — carro parado tempo demais */
+@keyframes pulsa-alerta {
+  0%,
+  100% {
+    border-color: #e0a106;
+  }
+  50% {
+    border-color: #ffce4d;
+  }
+}
+.pulsa-alerta {
+  animation: pulsa-alerta 1s ease-in-out infinite;
+}
