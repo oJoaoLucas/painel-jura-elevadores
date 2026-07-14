@@ -1,0 +1,11 @@
+Salve a logo da Jura Auto Center NESTA PASTA com o nome exato:
+
+    logo.png
+
+Ou seja, o caminho final deve ser:  public/logo.png
+
+O código (painel, recepção, home e relatório) já aponta para "/logo.png".
+Formato recomendado: PNG com fundo transparente. Se usar .jpg/.svg,
+renomeie no código ou converta para .png.
+
+Pode apagar este arquivo depois.

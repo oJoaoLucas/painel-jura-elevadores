@@ -1,0 +1,45 @@
+ÁUDIOS DE VOZ DA TV (Jura Painel)
+==================================
+
+A TV JÁ FALA SOZINHA usando a voz do navegador (não precisa de arquivo).
+Estes arquivos são OPCIONAIS: se você colocar um .mp3 com voz humana aqui,
+a TV usa o arquivo no lugar da voz do navegador. Se não existir, ela fala
+pela voz do navegador normalmente.
+
+REGRAS:
+- Formato: .mp3
+- Nome EXATAMENTE como abaixo (minúsculo, com hífen, sem acento no nome).
+- Pode gerar só os que quiser.
+
+------------------------------------------------------------
+ELEVADORES (1, 2, 3 e 4) — conforme o novo status
+------------------------------------------------------------
+elevador-1-ocupado.mp3       -> "Elevador um ocupado."
+elevador-2-ocupado.mp3       -> "Elevador dois ocupado."
+elevador-3-ocupado.mp3       -> "Elevador três ocupado."
+elevador-4-ocupado.mp3       -> "Elevador quatro ocupado."
+
+elevador-1-livre.mp3         -> "Elevador um livre."
+elevador-2-livre.mp3         -> "Elevador dois livre."
+elevador-3-livre.mp3         -> "Elevador três livre."
+elevador-4-livre.mp3         -> "Elevador quatro livre."
+
+elevador-1-atualizacao.mp3   -> "Elevador um teve atualização."
+elevador-2-atualizacao.mp3   -> "Elevador dois teve atualização."
+elevador-3-atualizacao.mp3   -> "Elevador três teve atualização."
+elevador-4-atualizacao.mp3   -> "Elevador quatro teve atualização."
+(atualização = passou para "aguardando peça" ou "pronto")
+
+------------------------------------------------------------
+OUTROS
+------------------------------------------------------------
+recado.mp3                   -> "Novo recado da recepção."
+fila.mp3                     -> "Novo carro para alinhar."
+
+------------------------------------------------------------
+RESUMO DOS NOMES POSSÍVEIS:
+  elevador-{1..4}-ocupado.mp3
+  elevador-{1..4}-livre.mp3
+  elevador-{1..4}-atualizacao.mp3
+  recado.mp3
+  fila.mp3
