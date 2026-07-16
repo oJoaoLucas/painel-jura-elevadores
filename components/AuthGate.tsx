@@ -1,42 +1,47 @@
 "use client";
 
-import { useEffect, useRef, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { estaLogado, login, ouvirAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
 import { IconLock, IconEye, IconEyeOff } from "@/components/Icon";
-import { entrar } from "@/app/actions/sessao";
 
-function TelaLogin() {
-  const router = useRouter();
-  const params = useSearchParams();
-  const destino = params.get("de") || "/admin";
+// Protege as telas de Recepção / Orçamento / Relatório.
+// A TV (/painel) não usa este gate.
+export default function AuthGate({ children }: { children: React.ReactNode }) {
+  const [ok, setOk] = useState<boolean | null>(null); // null = ainda verificando
 
+  useEffect(() => {
+    setOk(estaLogado());
+    return ouvirAuth(() => setOk(estaLogado()));
+  }, []);
+
+  if (ok === null) return null; // evita "flash" do login antes de checar
+  if (!ok) return <TelaLogin onOk={() => setOk(true)} />;
+  return <>{children}</>;
+}
+
+function TelaLogin({ onOk }: { onOk: () => void }) {
   const [valor, setValor] = useState("");
   const [erro, setErro] = useState(false);
   const [ver, setVer] = useState(false);
-  const [enviando, setEnviando] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  const tentar = async () => {
-    if (enviando) return;
-    setEnviando(true);
-    const { ok } = await entrar(valor);
-    if (ok) {
-      router.replace(destino);
+  const tentar = () => {
+    if (login(valor)) {
+      onOk();
     } else {
       setErro(true);
       setValor("");
-      setEnviando(false);
       inputRef.current?.focus();
     }
   };
 
   return (
-    <main className="gestao flex min-h-dvh flex-col items-center justify-center gap-7 bg-jura-bg p-6">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-7 bg-jura-bg p-6">
       <Logo imgClassName="h-16 w-auto" textClassName="text-3xl" />
 
       <form
@@ -48,9 +53,7 @@ function TelaLogin() {
       >
         <div className="mb-5 flex items-center gap-2 text-jura-muted">
           <IconLock className="h-5 w-5 text-jura-red" />
-          <h1 className="section-title text-lg text-jura-ink">
-            Acesso da Recepção
-          </h1>
+          <h1 className="eyebrow text-lg text-jura-ink">Acesso da Recepção</h1>
         </div>
 
         <label
@@ -97,10 +100,9 @@ function TelaLogin() {
 
         <button
           type="submit"
-          disabled={enviando}
-          className="mt-5 w-full rounded-lg bg-jura-red py-3 font-bold uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="mt-5 w-full rounded-lg bg-jura-red py-3 font-bold uppercase tracking-wide text-white transition-opacity hover:opacity-90"
         >
-          {enviando ? "Entrando…" : "Entrar"}
+          Entrar
         </button>
       </form>
 
@@ -109,13 +111,5 @@ function TelaLogin() {
         senha.
       </p>
     </main>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense fallback={null}>
-      <TelaLogin />
-    </Suspense>
   );
 }

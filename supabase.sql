@@ -1,115 +1,160 @@
 -- ============================================================
---  Jura Painel — Schema COMPLETO para instalação nova
---  Rode no Supabase: Dashboard > SQL Editor > New query.
---  (Para um banco que já existe, use a migração incremental em
---   supabase/migrations/ — este arquivo é a instalação do zero.)
+--  Jura Painel — Schema do Supabase
+--  Rode este SQL no Supabase: Dashboard > SQL Editor > New query
 -- ============================================================
 
 -- Elevadores (4 fixos, nunca deletar)
 create table if not exists elevadores (
-  id int primary key,
-  status text default 'livre'
-    check (status in ('livre','ocupado','aguardando','pronto')),
+  id int primary key,                 -- 1, 2, 3, 4
+  status text default 'livre',        -- 'livre' | 'ocupado' | 'aguardando' | 'pronto'
   placa text,
   carro text,
   servico text,
-  mecanico text,
-  ocupado_em timestamptz,
-  pausado_em timestamptz,
-  previsto_min int check (previsto_min is null or previsto_min > 0),
-  updated_at timestamptz default now()
+  mecanico text,                      -- mecânico responsável
+  ocupado_em timestamptz,             -- quando o carro entrou (tempo no elevador)
+  pausado_em timestamptz,             -- cronômetro pausado (almoço/fechado); null = correndo
+  updated_at timestamp default now()
 );
-insert into elevadores (id, status) values (1,'livre'),(2,'livre'),(3,'livre'),(4,'livre')
+
+-- Inserir os 4 elevadores (idempotente)
+insert into elevadores (id, status) values
+  (1, 'livre'), (2, 'livre'), (3, 'livre'), (4, 'livre')
 on conflict (id) do nothing;
 
 -- Fila de alinhamento
 create table if not exists fila_alinhamento (
-  id uuid primary key default gen_random_uuid(),
+  id uuid default gen_random_uuid() primary key,
   placa text not null,
   carro text not null,
-  ordem int not null check (ordem >= 0),
-  created_at timestamptz default now()
+  ordem int not null,
+  created_at timestamp default now()
 );
 
--- Lembretes da recepção
+-- Lembretes da recepção pros mecânicos
 create table if not exists lembretes (
-  id uuid primary key default gen_random_uuid(),
+  id uuid default gen_random_uuid() primary key,
   texto text not null,
-  destinatario text,
-  prioridade text default 'normal' check (prioridade in ('normal','urgente')),
-  created_at timestamptz default now()
+  destinatario text,                  -- pra quem (opcional)
+  prioridade text default 'normal',   -- 'normal' | 'urgente'
+  created_at timestamp default now()
 );
 
--- Carros aguardando um elevador
+-- Carros aguardando um elevador (pré-cadastro na recepção)
 create table if not exists aguardando (
-  id uuid primary key default gen_random_uuid(),
-  placa text, carro text, servico text, mecanico text,
-  created_at timestamptz default now()
+  id uuid default gen_random_uuid() primary key,
+  placa text,
+  carro text,
+  servico text,
+  mecanico text,
+  created_at timestamp default now()
 );
 
--- Histórico (append-only; preenchido ao liberar um elevador)
+-- Histórico do dia (preenchido ao liberar um elevador)
 create table if not exists historico (
-  id uuid primary key default gen_random_uuid(),
+  id uuid default gen_random_uuid() primary key,
   elevador_id int,
-  placa text, carro text, servico text, mecanico text,
+  placa text,
+  carro text,
+  servico text,
+  mecanico text,
   entrada timestamptz,
   saida timestamptz default now()
 );
 
--- Config (linha única, id=1)
+-- Config (linha única, id=1): som, voz, volume, PIN e alerta de carro parado
 create table if not exists config (
   id int primary key default 1,
   som_ativo boolean default true,
-  volume numeric default 0.3 check (volume >= 0 and volume <= 1),
+  voz_ativa boolean default true,
+  volume numeric default 0.3,
   pin text default '',
-  alerta_horas int default 3 check (alerta_horas >= 1 and alerta_horas <= 24),
-  radio_ativa boolean default false,
-  radio_estacao int default 0 check (radio_estacao >= 0),
-  radio_volume numeric default 0.4 check (radio_volume >= 0 and radio_volume <= 1),
-  tv_reload bigint default 0,
+  alerta_horas int default 3,
   constraint config_singleton check (id = 1)
 );
 insert into config (id) values (1) on conflict (id) do nothing;
 
--- Mecânicos
+-- Mecânicos (equipe editável pela tela de Configurações)
 create table if not exists mecanicos (
   id uuid primary key default gen_random_uuid(),
   nome text not null,
   ordem int not null default 0,
-  aniversario date,
   created_at timestamptz not null default now()
 );
+-- Equipe inicial (só se a tabela estiver vazia)
 insert into mecanicos (nome, ordem)
 select v.nome, v.ord
 from (values ('Wagner',1),('Allysson',2),('Fabio',3),('Marcos',4),('Jura',5)) as v(nome, ord)
 where not exists (select 1 from mecanicos);
 
--- Catálogo de preços de pneus
-create table if not exists tabela_medidas (
-  id uuid primary key default gen_random_uuid(),
-  medida text not null default 'Nova medida',
-  ordem int not null default 0 check (ordem >= 0),
-  created_at timestamptz not null default now()
-);
-create table if not exists tabela_modelos (
-  id uuid primary key default gen_random_uuid(),
-  medida_id uuid not null references tabela_medidas(id) on delete cascade,
-  modelo text not null default '',
-  valor  text not null default '',
-  ordem int not null default 0 check (ordem >= 0),
-  created_at timestamptz not null default now()
-);
-
--- Índices
+-- ============================================================
+--  Índices — a tela de Relatório filtra/ordena historico por "saida".
+--  Sem índice a consulta faz varredura completa e piora conforme o
+--  histórico cresce. (idempotente)
+-- ============================================================
 create index if not exists historico_saida_idx on historico (saida desc);
-create index if not exists fila_ordem_idx       on fila_alinhamento (ordem);
-create index if not exists modelos_medida_idx   on tabela_modelos (medida_id);
-create index if not exists medidas_ordem_idx    on tabela_medidas (ordem);
+create index if not exists fila_ordem_idx on fila_alinhamento (ordem);
 
 -- ============================================================
---  Funções atômicas + RLS + Realtime + permissões:
---  são idênticas às da migração. Rode também o arquivo
---  supabase/migrations/20260714120000_corrigir_schema_seguranca.sql
---  (as seções 5, 6 e 7 dele) OU copie aquelas seções aqui.
---  Mantê-las num único lugar evita divergência.
+--  Realtime — adiciona as tabelas à publicação
 -- ============================================================
+alter publication supabase_realtime add table elevadores;
+alter publication supabase_realtime add table fila_alinhamento;
+alter publication supabase_realtime add table lembretes;
+alter publication supabase_realtime add table aguardando;
+alter publication supabase_realtime add table historico;
+alter publication supabase_realtime add table config;
+alter publication supabase_realtime add table mecanicos;
+
+-- ============================================================
+--  RLS — "hardening leve" (sem auth de verdade; app usa a anon key).
+--  Sem backend, a escrita precisa ser permitida pra anon (é o que o
+--  navegador usa). Então travamos só o que é ESTRUTURAL/irreversível:
+--   - historico: só SELECT + INSERT (não dá pra apagar/alterar histórico)
+--   - elevadores: só SELECT + UPDATE (os 4 são fixos; sem insert/delete)
+--   - config: só SELECT + UPDATE (linha única; sem insert/delete)
+--  As tabelas dinâmicas (aguardando/fila/lembretes) seguem com as
+--  operações que o app usa.
+--  OBS: pra travar de verdade, mover as escritas pra um servidor
+--  (Route Handler + service_role) e deixar anon só com SELECT.
+-- ============================================================
+alter table elevadores enable row level security;
+alter table fila_alinhamento enable row level security;
+alter table lembretes enable row level security;
+alter table aguardando enable row level security;
+alter table historico enable row level security;
+alter table config enable row level security;
+
+-- ELEVADORES (4 fixos): leitura + update de status
+create policy elevadores_select on elevadores for select to anon, authenticated using (true);
+create policy elevadores_update on elevadores for update to anon, authenticated using (true) with check (true);
+
+-- CONFIG (linha única): leitura + update
+create policy config_select on config for select to anon, authenticated using (true);
+create policy config_update on config for update to anon, authenticated using (true) with check (true);
+
+-- HISTORICO (append-only): leitura + insert
+create policy historico_select on historico for select to anon, authenticated using (true);
+create policy historico_insert on historico for insert to anon, authenticated with check (true);
+
+-- AGUARDANDO (dinâmica): leitura + insert + delete
+create policy aguardando_select on aguardando for select to anon, authenticated using (true);
+create policy aguardando_insert on aguardando for insert to anon, authenticated with check (true);
+create policy aguardando_delete on aguardando for delete to anon, authenticated using (true);
+
+-- FILA_ALINHAMENTO (dinâmica): leitura + insert + update (ordem) + delete
+create policy fila_select on fila_alinhamento for select to anon, authenticated using (true);
+create policy fila_insert on fila_alinhamento for insert to anon, authenticated with check (true);
+create policy fila_update on fila_alinhamento for update to anon, authenticated using (true) with check (true);
+create policy fila_delete on fila_alinhamento for delete to anon, authenticated using (true);
+
+-- LEMBRETES (dinâmica): leitura + insert + delete
+create policy lembretes_select on lembretes for select to anon, authenticated using (true);
+create policy lembretes_insert on lembretes for insert to anon, authenticated with check (true);
+create policy lembretes_delete on lembretes for delete to anon, authenticated using (true);
+
+-- MECANICOS (editável na tela): leitura + insert + update + delete
+alter table mecanicos enable row level security;
+create policy mecanicos_select on mecanicos for select to anon, authenticated using (true);
+create policy mecanicos_insert on mecanicos for insert to anon, authenticated with check (true);
+create policy mecanicos_update on mecanicos for update to anon, authenticated using (true) with check (true);
+create policy mecanicos_delete on mecanicos for delete to anon, authenticated using (true);

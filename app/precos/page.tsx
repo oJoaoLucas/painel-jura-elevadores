@@ -1,53 +1,49 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { type TabelaMedida, type TabelaModelo } from "@/lib/supabase";
+import {
+  supabase,
+  type TabelaMedida,
+  type TabelaModelo,
+} from "@/lib/supabase";
 import NavMenu from "@/components/NavMenu";
+import AuthGate from "@/components/AuthGate";
 import { useDialog } from "@/components/Dialog";
-import * as precoAcao from "@/app/actions/precos";
-import type { Resultado } from "@/lib/resultado";
 
 export default function PrecosPage() {
-  const { confirmar, avisar } = useDialog();
+  const { confirmar } = useDialog();
   const [medidas, setMedidas] = useState<TabelaMedida[]>([]);
   const [modelos, setModelos] = useState<TabelaModelo[]>([]);
   const [carregando, setCarregando] = useState(true);
-  const [erroCarga, setErroCarga] = useState(false);
 
   useEffect(() => {
     recarregar();
   }, []);
 
-  const rodar = async (p: Promise<Resultado>): Promise<boolean> => {
-    const r = await p;
-    if (!r.ok) await avisar(r.erro);
-    return r.ok;
-  };
-
   const recarregar = async () => {
-    setCarregando(true);
-    const r = await precoAcao.carregarPrecos();
-    if (r.ok) {
-      setMedidas(r.dado.medidas);
-      setModelos(r.dado.modelos);
-      setErroCarga(false);
-    } else {
-      setErroCarga(true);
-    }
+    const [me, mo] = await Promise.all([
+      supabase.from("tabela_medidas").select("*").order("ordem"),
+      supabase.from("tabela_modelos").select("*").order("ordem"),
+    ]);
+    if (me.data) setMedidas(me.data as TabelaMedida[]);
+    if (mo.data) setModelos(mo.data as TabelaModelo[]);
     setCarregando(false);
   };
 
   // ----- Medidas (blocos) -----
   const addMedida = async () => {
-    if (await rodar(precoAcao.addMedida())) recarregar();
+    const maxOrdem = medidas.reduce((m, x) => Math.max(m, x.ordem), 0);
+    await supabase
+      .from("tabela_medidas")
+      .insert({ medida: "Nova medida", ordem: maxOrdem + 1 });
+    recarregar();
   };
 
   const setMedidaLocal = (id: string, v: string) =>
     setMedidas((cur) => cur.map((m) => (m.id === id ? { ...m, medida: v } : m)));
 
-  const salvarMedida = async (id: string, v: string) => {
-    if (!(await rodar(precoAcao.salvarMedida(id, v)))) recarregar();
-  };
+  const salvarMedida = async (id: string, v: string) =>
+    supabase.from("tabela_medidas").update({ medida: v }).eq("id", id);
 
   const removerMedida = async (m: TabelaMedida) => {
     if (
@@ -58,13 +54,19 @@ export default function PrecosPage() {
         tom: "perigo",
       })
     ) {
-      if (await rodar(precoAcao.removerMedida(m.id))) recarregar();
+      await supabase.from("tabela_medidas").delete().eq("id", m.id);
+      recarregar();
     }
   };
 
   // ----- Modelos (itens dentro do bloco) -----
   const addModelo = async (medidaId: string) => {
-    if (await rodar(precoAcao.addModelo(medidaId))) recarregar();
+    const dele = modelos.filter((x) => x.medida_id === medidaId);
+    const maxOrdem = dele.reduce((m, x) => Math.max(m, x.ordem), 0);
+    await supabase
+      .from("tabela_modelos")
+      .insert({ medida_id: medidaId, ordem: maxOrdem + 1 });
+    recarregar();
   };
 
   const setModeloLocal = (id: string, campo: "modelo" | "valor", v: string) =>
@@ -72,17 +74,20 @@ export default function PrecosPage() {
       cur.map((m) => (m.id === id ? { ...m, [campo]: v } : m))
     );
 
-  const salvarModelo = async (id: string, campo: "modelo" | "valor", v: string) => {
-    if (!(await rodar(precoAcao.salvarModelo(id, campo, v)))) recarregar();
-  };
+  const salvarModelo = async (id: string, campo: "modelo" | "valor", v: string) =>
+    supabase
+      .from("tabela_modelos")
+      .update({ [campo]: v })
+      .eq("id", id);
 
   const removerModelo = async (id: string) => {
-    if (await rodar(precoAcao.removerModelo(id)))
-      setModelos((cur) => cur.filter((m) => m.id !== id));
+    await supabase.from("tabela_modelos").delete().eq("id", id);
+    setModelos((cur) => cur.filter((m) => m.id !== id));
   };
 
   return (
-    <main className="gestao px-4 pb-12 sm:px-6">
+    <AuthGate>
+      <main className="gestao px-4 pb-12 sm:px-6">
         <NavMenu titulo="Preços de Pneus" />
 
         <div className="mb-5 flex items-center justify-between">
@@ -176,20 +181,12 @@ export default function PrecosPage() {
         {carregando && (
           <p className="text-jura-muted">Carregando preços…</p>
         )}
-        {!carregando && erroCarga && (
-          <p className="text-jura-red">
-            Não deu pra carregar os preços. Confira a conexão e{" "}
-            <button onClick={recarregar} className="underline">
-              tente de novo
-            </button>
-            .
-          </p>
-        )}
-        {!carregando && !erroCarga && medidas.length === 0 && (
+        {!carregando && medidas.length === 0 && (
           <p className="text-jura-muted">
             Nenhuma medida ainda. Clique em &quot;+ Adicionar medida&quot;.
           </p>
         )}
-    </main>
+      </main>
+    </AuthGate>
   );
 }

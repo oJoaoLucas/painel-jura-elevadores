@@ -1,45 +1,66 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Historico } from "@/lib/supabase";
+import { supabase, type Historico } from "@/lib/supabase";
 import NavMenu from "@/components/NavMenu";
-import { carregarHistorico } from "@/app/actions/relatorio";
-import type { Periodo } from "@/lib/tempo";
-import {
-  agregarServicos,
-  agregarPorMecanico,
-  tempoMedioMs,
-  formatarDuracao,
-} from "@/lib/metricas";
+import AuthGate from "@/components/AuthGate";
+
+type Periodo = "hoje" | "7dias" | "30dias";
 
 export default function RelatorioPage() {
   const [historico, setHistorico] = useState<Historico[]>([]);
   const [periodo, setPeriodo] = useState<Periodo>("hoje");
   const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState(false);
 
   useEffect(() => {
-    let vivo = true;
+    const desde = new Date();
+    if (periodo === "hoje") desde.setHours(0, 0, 0, 0);
+    else if (periodo === "7dias") desde.setDate(desde.getDate() - 7);
+    else desde.setDate(desde.getDate() - 30);
+
     setCarregando(true);
-    setErro(false);
-    carregarHistorico(periodo).then((r) => {
-      if (!vivo) return;
-      if (r.ok) setHistorico(r.dado);
-      else setErro(true);
-      setCarregando(false);
-    });
-    return () => {
-      vivo = false;
-    };
+    supabase
+      .from("historico")
+      .select("*")
+      .gte("saida", desde.toISOString())
+      .order("saida", { ascending: false })
+      .then(({ data }) => {
+        setHistorico((data as Historico[]) || []);
+        setCarregando(false);
+      });
   }, [periodo]);
 
-  // Métricas (funções puras em lib/metricas.ts)
+  // Métricas
   const total = historico.length;
-  const mediaTxt = formatarDuracao(tempoMedioMs(historico));
-  const servicos = agregarServicos(historico);
-  const mecanicos = agregarPorMecanico(historico);
+
+  const duracoes = historico
+    .filter((h) => h.entrada && h.saida)
+    .map((h) => new Date(h.saida!).getTime() - new Date(h.entrada!).getTime())
+    .filter((ms) => ms > 0);
+  const mediaMs =
+    duracoes.length > 0
+      ? duracoes.reduce((a, b) => a + b, 0) / duracoes.length
+      : 0;
+  const mediaTxt = formatarDuracao(mediaMs);
+
+  // Serviços mais feitos
+  const porServico = new Map<string, number>();
+  historico.forEach((h) => {
+    const s = (h.servico || "—").trim() || "—";
+    porServico.set(s, (porServico.get(s) || 0) + 1);
+  });
+  const servicos = [...porServico.entries()].sort((a, b) => b[1] - a[1]);
+
+  // Por mecânico
+  const porMecanico = new Map<string, number>();
+  historico.forEach((h) => {
+    const m = (h.mecanico || "—").trim() || "—";
+    porMecanico.set(m, (porMecanico.get(m) || 0) + 1);
+  });
+  const mecanicos = [...porMecanico.entries()].sort((a, b) => b[1] - a[1]);
 
   return (
+    <AuthGate>
     <main className="gestao space-y-8 px-4 pb-12 sm:px-6">
       <NavMenu titulo="Relatório" />
 
@@ -63,10 +84,6 @@ export default function RelatorioPage() {
 
       {carregando ? (
         <p className="text-white/40">Carregando…</p>
-      ) : erro ? (
-        <p className="text-jura-red">
-          Não deu pra carregar o relatório. Confira a conexão e tente de novo.
-        </p>
       ) : (
         <>
           {/* Cards de métrica */}
@@ -142,6 +159,7 @@ export default function RelatorioPage() {
         </>
       )}
     </main>
+    </AuthGate>
   );
 }
 
@@ -190,4 +208,13 @@ function Lista({
       )}
     </section>
   );
+}
+
+function formatarDuracao(ms: number): string {
+  if (ms <= 0) return "—";
+  const totalMin = Math.round(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const min = totalMin % 60;
+  if (h > 0) return `${h}h${min.toString().padStart(2, "0")}`;
+  return `${min}min`;
 }

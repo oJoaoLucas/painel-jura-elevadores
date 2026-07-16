@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import Logo from "@/components/Logo";
-import { sair } from "@/app/actions/sessao";
+import { logout, estaLogado, ouvirAuth } from "@/lib/auth";
 import { IconLogout } from "@/components/Icon";
 
 const LINKS: { href: string; label: string }[] = [
@@ -18,12 +19,12 @@ const LINKS: { href: string; label: string }[] = [
 
 export default function NavMenu({ titulo }: { titulo?: string }) {
   const pathname = usePathname();
-  const router = useRouter();
+  const [logado, setLogado] = useState(false);
 
-  const fazerLogout = async () => {
-    await sair();
-    router.replace("/login");
-  };
+  useEffect(() => {
+    setLogado(estaLogado());
+    return ouvirAuth(() => setLogado(estaLogado()));
+  }, []);
 
   return (
     <header className="z-40 mb-4 flex flex-col gap-2.5 border-b border-jura-border bg-jura-bg py-3 sm:mb-6 sm:gap-3 sm:py-4 sm:flex-row sm:items-center sm:justify-between lg:sticky lg:top-0">
@@ -59,14 +60,16 @@ export default function NavMenu({ titulo }: { titulo?: string }) {
           );
         })}
 
-        <button
-          onClick={fazerLogout}
-          className="font-btn ml-1 flex items-center gap-1.5 rounded-md border border-jura-border px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-jura-muted transition-colors hover:border-jura-red hover:text-jura-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-jura-red/60"
-          title="Sair"
-        >
-          <IconLogout className="h-4 w-4" />
-          Sair
-        </button>
+        {logado && (
+          <button
+            onClick={logout}
+            className="font-btn ml-1 flex items-center gap-1.5 rounded-md border border-jura-border px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-jura-muted transition-colors hover:border-jura-red hover:text-jura-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-jura-red/60"
+            title="Sair"
+          >
+            <IconLogout className="h-4 w-4" />
+            Sair
+          </button>
+        )}
       </nav>
     </header>
   );

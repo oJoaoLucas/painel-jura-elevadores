@@ -12,12 +12,6 @@ import {
   type Aguardando as AguardandoItem,
 } from "@/lib/supabase";
 import { slotsElevador } from "@/lib/status";
-import type { Resultado } from "@/lib/resultado";
-import * as elevadorAcao from "@/app/actions/elevadores";
-import * as aguardandoAcao from "@/app/actions/aguardando";
-import * as filaAcao from "@/app/actions/fila";
-import * as lembreteAcao from "@/app/actions/lembretes";
-import { atualizarConfig as atualizarConfigAcao } from "@/app/actions/config";
 import ElevadorCard from "@/components/ElevadorCard";
 import FilaAlinhamento from "@/components/FilaAlinhamento";
 import Lembretes from "@/components/Lembretes";
@@ -25,6 +19,7 @@ import Aguardando from "@/components/Aguardando";
 import RadioControle from "@/components/RadioControle";
 import AtualizarTV from "@/components/AtualizarTV";
 import NavMenu from "@/components/NavMenu";
+import AuthGate from "@/components/AuthGate";
 import { useDialog } from "@/components/Dialog";
 
 export default function AdminPage() {
@@ -36,15 +31,20 @@ export default function AdminPage() {
   const [agora, setAgora] = useState(new Date());
   const { avisar } = useDialog();
 
-  // Roda uma Server Action e avisa a recepção se ela falhar (em vez de
-  // falhar em silêncio e dar impressão de que salvou).
-  const rodar = async (p: Promise<Resultado>): Promise<boolean> => {
-    const r = await p;
-    if (!r.ok) await avisar(r.erro);
-    return r.ok;
+  // Roda uma gravação no banco e avisa a recepção se falhar (internet/servidor),
+  // em vez de falhar em silêncio e dar impressão de que salvou.
+  const gravar = async (
+    op: PromiseLike<{ error: { message: string } | null }>
+  ): Promise<boolean> => {
+    const { error } = await op;
+    if (error) {
+      await avisar("Não deu pra salvar. Confira a internet e tente de novo.");
+      return false;
+    }
+    return true;
   };
 
-  // ----- Recarregadores (leitura via anon; realtime dispara sozinho) -----
+  // ----- Recarregadores -----
   const recarregarElevadores = () =>
     supabase
       .from("elevadores")
@@ -81,10 +81,10 @@ export default function AdminPage() {
       .order("created_at")
       .then(({ data }) => data && setAguardando(data as AguardandoItem[]));
 
-  // Atualiza a config na hora (otimista) e grava no servidor; reverte se falhar.
+  // Atualiza a config na hora (otimista) e grava; se falhar, reverte e avisa.
   const atualizarConfig = async (patch: Partial<Config>) => {
     setConfig((c) => ({ ...c, ...patch }));
-    const ok = await rodar(atualizarConfigAcao(patch));
+    const ok = await gravar(supabase.from("config").update(patch).eq("id", 1));
     if (!ok) recarregarConfig();
   };
 
@@ -126,36 +126,153 @@ export default function AdminPage() {
       previsto_min: number | null;
     }
   ) => {
-    if (await rodar(elevadorAcao.ocuparElevador(id, dados)))
-      recarregarElevadores();
+    const atual = elevadores.find((e) => e.id === id);
+    const eraLivre = !atual || atual.status === "livre";
+    const ok = await gravar(
+      supabase
+        .from("elevadores")
+        .update({
+          status: atual && atual.status !== "livre" ? atual.status : "ocupado",
+          placa: dados.placa || null,
+          carro: dados.carro || null,
+          servico: dados.servico || null,
+          mecanico: dados.mecanico || null,
+          previsto_min: dados.previsto_min,
+          // só reseta o cronômetro quando o carro ENTRA (estava livre)
+          ocupado_em: eraLivre ? new Date().toISOString() : atual?.ocupado_em,
+          pausado_em: eraLivre ? null : atual?.pausado_em,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+    );
+    if (ok) recarregarElevadores();
   };
 
   const mudarStatus = async (id: number, status: ElevadorStatus) => {
-    if (await rodar(elevadorAcao.mudarStatus(id, status)))
-      recarregarElevadores();
+    const ok = await gravar(
+      supabase
+        .from("elevadores")
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq("id", id)
+    );
+    if (ok) recarregarElevadores();
   };
 
+  // Pausa/retoma o cronômetro (almoço/fechado). Ao retomar, o tempo que
+  // ficou pausado é descontado empurrando ocupado_em pra frente.
   const pausarElevador = async (id: number, pausar: boolean) => {
-    if (await rodar(elevadorAcao.pausarElevador(id, pausar)))
-      recarregarElevadores();
+    const el = elevadores.find((e) => e.id === id);
+    if (!el) return;
+    let dados: Partial<Elevador>;
+    if (pausar) {
+      dados = { pausado_em: new Date().toISOString() };
+    } else {
+      const pausadoMs = el.pausado_em
+        ? Date.now() - new Date(el.pausado_em).getTime()
+        : 0;
+      dados = {
+        pausado_em: null,
+        ocupado_em: el.ocupado_em
+          ? new Date(
+              new Date(el.ocupado_em).getTime() + Math.max(0, pausadoMs)
+            ).toISOString()
+          : el.ocupado_em,
+      };
+    }
+    const ok = await gravar(
+      supabase
+        .from("elevadores")
+        .update({ ...dados, updated_at: new Date().toISOString() })
+        .eq("id", id)
+    );
+    if (ok) recarregarElevadores();
   };
 
   const liberarElevador = async (id: number) => {
-    if (await rodar(elevadorAcao.liberarElevador(id))) recarregarElevadores();
+    const el = elevadores.find((e) => e.id === id);
+    // Salva no histórico antes de limpar
+    if (el && (el.carro || el.placa)) {
+      // Se liberou sem "Retomar", desconta a pausa pendente da duração
+      const pausaPendenteMs = el.pausado_em
+        ? Math.max(0, Date.now() - new Date(el.pausado_em).getTime())
+        : 0;
+      const entrada =
+        el.ocupado_em && pausaPendenteMs > 0
+          ? new Date(
+              new Date(el.ocupado_em).getTime() + pausaPendenteMs
+            ).toISOString()
+          : el.ocupado_em;
+      await supabase.from("historico").insert({
+        elevador_id: id,
+        placa: el.placa,
+        carro: el.carro,
+        servico: el.servico,
+        mecanico: el.mecanico,
+        entrada,
+        saida: new Date().toISOString(),
+      });
+    }
+    const ok = await gravar(
+      supabase
+        .from("elevadores")
+        .update({
+          status: "livre",
+          placa: null,
+          carro: null,
+          servico: null,
+          mecanico: null,
+          ocupado_em: null,
+          pausado_em: null,
+          previsto_min: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+    );
+    if (ok) recarregarElevadores();
   };
 
+  // Carro pronto -> joga na fila de alinhamento e libera o elevador
   const moverParaAlinhamento = async (id: number) => {
-    if (await rodar(elevadorAcao.moverParaAlinhamento(id))) {
-      recarregarElevadores();
-      recarregarFila();
+    const el = elevadores.find((e) => e.id === id);
+    if (el && (el.carro || el.placa)) {
+      const maxOrdem = fila.reduce((m, i) => Math.max(m, i.ordem), 0);
+      await supabase.from("fila_alinhamento").insert({
+        placa: el.placa || "—",
+        carro: el.carro || "—",
+        ordem: maxOrdem + 1,
+      });
     }
+    await liberarElevador(id);
+    recarregarFila();
   };
 
+  // Tira o carro do elevador e devolve para "Carros aguardando" (sem ir pro histórico)
   const voltarParaAguardando = async (id: number) => {
-    if (await rodar(elevadorAcao.voltarParaAguardando(id))) {
-      recarregarElevadores();
-      recarregarAguardando();
+    const el = elevadores.find((e) => e.id === id);
+    if (el && (el.carro || el.placa)) {
+      await supabase.from("aguardando").insert({
+        placa: el.placa,
+        carro: el.carro,
+        servico: el.servico,
+        mecanico: el.mecanico,
+      });
     }
+    await supabase
+      .from("elevadores")
+      .update({
+        status: "livre",
+        placa: null,
+        carro: null,
+        servico: null,
+        mecanico: null,
+        ocupado_em: null,
+        pausado_em: null,
+        previsto_min: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+    recarregarElevadores();
+    recarregarAguardando();
   };
 
   // ----- Carros aguardando -----
@@ -165,36 +282,56 @@ export default function AdminPage() {
     servico: string;
     mecanico: string;
   }) => {
-    if (await rodar(aguardandoAcao.adicionarAguardando(dados)))
-      recarregarAguardando();
+    await supabase.from("aguardando").insert({
+      placa: dados.placa || null,
+      carro: dados.carro || null,
+      servico: dados.servico || null,
+      mecanico: dados.mecanico || null,
+    });
+    recarregarAguardando();
   };
 
   const removerAguardando = async (id: string) => {
-    if (await rodar(aguardandoAcao.removerAguardando(id)))
-      recarregarAguardando();
+    await supabase.from("aguardando").delete().eq("id", id);
+    recarregarAguardando();
   };
 
+  // Joga um carro aguardando num elevador livre
   const moverParaElevador = async (item: AguardandoItem, elevadorId: number) => {
-    if (await rodar(aguardandoAcao.aguardandoParaElevador(item.id, elevadorId))) {
-      recarregarElevadores();
-      recarregarAguardando();
-    }
+    await ocuparElevador(elevadorId, {
+      placa: item.placa || "",
+      carro: item.carro || "",
+      servico: item.servico || "",
+      mecanico: item.mecanico || "",
+      previsto_min: null,
+    });
+    await supabase.from("aguardando").delete().eq("id", item.id);
+    recarregarAguardando();
   };
 
+  // Manda um carro aguardando direto pra fila de alinhamento
   const aguardandoParaAlinhamento = async (item: AguardandoItem) => {
-    if (await rodar(aguardandoAcao.aguardandoParaAlinhamento(item.id))) {
-      recarregarAguardando();
-      recarregarFila();
-    }
+    const maxOrdem = fila.reduce((m, i) => Math.max(m, i.ordem), 0);
+    await supabase.from("fila_alinhamento").insert({
+      placa: item.placa || "—",
+      carro: item.carro || "—",
+      ordem: maxOrdem + 1,
+    });
+    await supabase.from("aguardando").delete().eq("id", item.id);
+    recarregarAguardando();
+    recarregarFila();
   };
 
   // ----- Fila -----
   const adicionarFila = async (placa: string, carro: string) => {
-    if (await rodar(filaAcao.adicionarFila(placa, carro))) recarregarFila();
+    const maxOrdem = fila.reduce((m, i) => Math.max(m, i.ordem), 0);
+    await supabase.from("fila_alinhamento").insert({ placa, carro, ordem: maxOrdem + 1 });
+    recarregarFila();
   };
 
   const removerFila = async (id: string) => {
-    if (await rodar(filaAcao.removerFila(id))) recarregarFila();
+    await supabase.from("fila_alinhamento").delete().eq("id", id);
+    recarregarFila();
   };
 
   const moverFila = async (id: string, dir: "up" | "down") => {
@@ -203,12 +340,13 @@ export default function AdminPage() {
     if (idx === -1) return;
     const alvo = dir === "up" ? idx - 1 : idx + 1;
     if (alvo < 0 || alvo >= ordenados.length) return;
-    if (
-      await rodar(
-        filaAcao.trocarOrdemFila(ordenados[idx].id, ordenados[alvo].id)
-      )
-    )
-      recarregarFila();
+    const a = ordenados[idx];
+    const b = ordenados[alvo];
+    await Promise.all([
+      supabase.from("fila_alinhamento").update({ ordem: b.ordem }).eq("id", a.id),
+      supabase.from("fila_alinhamento").update({ ordem: a.ordem }).eq("id", b.id),
+    ]);
+    recarregarFila();
   };
 
   // ----- Lembretes -----
@@ -217,12 +355,15 @@ export default function AdminPage() {
     destinatario: string,
     prioridade: "normal" | "urgente"
   ) => {
-    if (await rodar(lembreteAcao.adicionarLembrete(texto, destinatario, prioridade)))
-      recarregarLembretes();
+    await supabase
+      .from("lembretes")
+      .insert({ texto, destinatario: destinatario || null, prioridade });
+    recarregarLembretes();
   };
 
   const removerLembrete = async (id: string) => {
-    if (await rodar(lembreteAcao.removerLembrete(id))) recarregarLembretes();
+    await supabase.from("lembretes").delete().eq("id", id);
+    recarregarLembretes();
   };
 
   // 4 slots garantidos
@@ -233,6 +374,7 @@ export default function AdminPage() {
     .map((s) => s.id);
 
   return (
+    <AuthGate>
     <main className="gestao space-y-6 px-4 pb-12 sm:px-6">
       <NavMenu titulo="Recepção" />
 
@@ -303,5 +445,6 @@ export default function AdminPage() {
       {/* Rádio da TV */}
       <RadioControle config={config} onSalvar={atualizarConfig} />
     </main>
+    </AuthGate>
   );
 }

@@ -19,14 +19,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# env files (segredos NÃO versionados) — mas mantém os *.example
-.env
-.env.local
+# local env files
 .env*.local
-.env.development
-.env.production
-!.env.example
-!.env.local.example
+.env
 
 # typescript
 *.tsbuildinfo
@@ -34,3 +29,6 @@ next-env.d.ts
 
 # vercel
 .vercel
+
+.vercel
+.env*

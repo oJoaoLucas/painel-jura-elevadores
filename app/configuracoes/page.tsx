@@ -8,11 +8,9 @@ import {
   type Mecanico,
 } from "@/lib/supabase";
 import NavMenu from "@/components/NavMenu";
+import AuthGate from "@/components/AuthGate";
 import { useDialog } from "@/components/Dialog";
 import { IconUser } from "@/components/Icon";
-import { atualizarConfig } from "@/app/actions/config";
-import * as mecanicoAcao from "@/app/actions/mecanicos";
-import type { Resultado } from "@/lib/resultado";
 
 export default function ConfiguracoesPage() {
   const { confirmar, avisar } = useDialog();
@@ -37,32 +35,22 @@ export default function ConfiguracoesPage() {
       .order("ordem")
       .then(({ data }) => data && setMecanicos(data as Mecanico[]));
 
-  const rodar = async (p: Promise<Resultado>): Promise<boolean> => {
-    const r = await p;
-    if (!r.ok) await avisar(r.erro);
-    return r.ok;
-  };
-
   const salvar = async (patch: Partial<Config>) => {
     setConfig((c) => ({ ...c, ...patch }));
-    const ok = await rodar(atualizarConfig(patch));
-    if (!ok) {
-      // reverte pro que está no banco
-      supabase
-        .from("config")
-        .select("*")
-        .eq("id", 1)
-        .single()
-        .then(({ data }) => data && setConfig(data as Config));
-    }
+    await supabase.from("config").update(patch).eq("id", 1);
   };
 
   const addMecanico = async () => {
     const nome = novo.trim();
     if (!nome) return;
+    if (mecanicos.some((m) => m.nome.toLowerCase() === nome.toLowerCase())) {
+      await avisar("Esse mecânico já está na lista.");
+      return;
+    }
+    const maxOrdem = mecanicos.reduce((m, x) => Math.max(m, x.ordem), 0);
     setNovo("");
-    if (await rodar(mecanicoAcao.adicionarMecanico(nome))) carregarMecanicos();
-    else setNovo(nome);
+    await supabase.from("mecanicos").insert({ nome, ordem: maxOrdem + 1 });
+    carregarMecanicos();
   };
 
   const renomear = async (id: string, nome: string) => {
@@ -75,16 +63,17 @@ export default function ConfiguracoesPage() {
       carregarMecanicos(); // reverte se ficou vazio
       return;
     }
-    if (!(await rodar(mecanicoAcao.renomearMecanico(id, limpo))))
-      carregarMecanicos();
+    await supabase.from("mecanicos").update({ nome: limpo }).eq("id", id);
   };
 
   const salvarAniversario = async (id: string, valor: string) => {
     setMecanicos((cur) =>
       cur.map((m) => (m.id === id ? { ...m, aniversario: valor || null } : m))
     );
-    if (!(await rodar(mecanicoAcao.definirAniversario(id, valor))))
-      carregarMecanicos();
+    await supabase
+      .from("mecanicos")
+      .update({ aniversario: valor || null })
+      .eq("id", id);
   };
 
   const removerMecanico = async (m: Mecanico) => {
@@ -95,13 +84,15 @@ export default function ConfiguracoesPage() {
         tom: "perigo",
       })
     ) {
-      if (await rodar(mecanicoAcao.removerMecanico(m.id))) carregarMecanicos();
+      await supabase.from("mecanicos").delete().eq("id", m.id);
+      carregarMecanicos();
     }
   };
 
   return (
-    <main className="gestao px-4 pb-12 sm:px-6">
-      <NavMenu titulo="Configurações" />
+    <AuthGate>
+      <main className="gestao px-4 pb-12 sm:px-6">
+        <NavMenu titulo="Configurações" />
 
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Som */}
@@ -237,6 +228,7 @@ export default function ConfiguracoesPage() {
             </p>
           </section>
         </div>
-    </main>
+      </main>
+    </AuthGate>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import NavMenu from "@/components/NavMenu";
+import AuthGate from "@/components/AuthGate";
 import { IconCheck } from "@/components/Icon";
 import IconeJura from "@/components/IconeJura";
 
@@ -127,6 +128,7 @@ export default function OrcamentoPage() {
   };
 
   return (
+    <AuthGate>
     <main className="gestao px-4 pb-12 sm:px-6">
       <NavMenu titulo="Orçamento de Pneus" />
 
@@ -295,5 +297,6 @@ export default function OrcamentoPage() {
       </section>
       </div>
     </main>
+    </AuthGate>
   );
 }
