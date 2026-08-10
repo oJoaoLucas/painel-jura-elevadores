@@ -71,6 +71,16 @@ export type Aguardando = {
   created_at: string;
 };
 
+// Carro que voltou na oficina (re-serviço)
+export type Retorno = {
+  id: string;
+  placa: string | null;
+  carro: string | null;
+  data: string; // "YYYY-MM-DD"
+  descricao: string | null;
+  created_at: string;
+};
+
 export type Historico = {
   id: string;
   elevador_id: number | null;

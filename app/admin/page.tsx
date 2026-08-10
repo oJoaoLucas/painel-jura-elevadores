@@ -9,6 +9,7 @@ import {
   type FilaItem,
   type Lembrete,
   type Config,
+  type Retorno,
   type Aguardando as AguardandoItem,
 } from "@/lib/supabase";
 import { slotsElevador } from "@/lib/status";
@@ -16,6 +17,7 @@ import ElevadorCard from "@/components/ElevadorCard";
 import FilaAlinhamento from "@/components/FilaAlinhamento";
 import Lembretes from "@/components/Lembretes";
 import Aguardando from "@/components/Aguardando";
+import Retornos from "@/components/Retornos";
 import RadioControle from "@/components/RadioControle";
 import AtualizarTV from "@/components/AtualizarTV";
 import NavMenu from "@/components/NavMenu";
@@ -27,6 +29,7 @@ export default function AdminPage() {
   const [fila, setFila] = useState<FilaItem[]>([]);
   const [lembretes, setLembretes] = useState<Lembrete[]>([]);
   const [aguardando, setAguardando] = useState<AguardandoItem[]>([]);
+  const [retornos, setRetornos] = useState<Retorno[]>([]);
   const [config, setConfig] = useState<Config>(CONFIG_PADRAO);
   const [agora, setAgora] = useState(new Date());
   const { avisar } = useDialog();
@@ -81,6 +84,14 @@ export default function AdminPage() {
       .order("created_at")
       .then(({ data }) => data && setAguardando(data as AguardandoItem[]));
 
+  const recarregarRetornos = () =>
+    supabase
+      .from("retornos")
+      .select("*")
+      .order("data", { ascending: false })
+      .order("created_at", { ascending: false })
+      .then(({ data }) => data && setRetornos(data as Retorno[]));
+
   // Atualiza a config na hora (otimista) e grava; se falhar, reverte e avisa.
   const atualizarConfig = async (patch: Partial<Config>) => {
     setConfig((c) => ({ ...c, ...patch }));
@@ -100,6 +111,7 @@ export default function AdminPage() {
     recarregarLembretes();
     recarregarConfig();
     recarregarAguardando();
+    recarregarRetornos();
 
     const channel = supabase
       .channel("admin-jura")
@@ -108,6 +120,7 @@ export default function AdminPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "lembretes" }, recarregarLembretes)
       .on("postgres_changes", { event: "*", schema: "public", table: "config" }, recarregarConfig)
       .on("postgres_changes", { event: "*", schema: "public", table: "aguardando" }, recarregarAguardando)
+      .on("postgres_changes", { event: "*", schema: "public", table: "retornos" }, recarregarRetornos)
       .subscribe();
 
     return () => {
@@ -366,6 +379,29 @@ export default function AdminPage() {
     recarregarLembretes();
   };
 
+  // ----- Carros que voltaram (re-serviço) -----
+  const adicionarRetorno = async (dados: {
+    placa: string;
+    carro: string;
+    data: string;
+    descricao: string;
+  }) => {
+    const ok = await gravar(
+      supabase.from("retornos").insert({
+        placa: dados.placa || null,
+        carro: dados.carro || null,
+        data: dados.data,
+        descricao: dados.descricao || null,
+      })
+    );
+    if (ok) recarregarRetornos();
+  };
+
+  const removerRetorno = async (id: string) => {
+    const ok = await gravar(supabase.from("retornos").delete().eq("id", id));
+    if (ok) recarregarRetornos();
+  };
+
   // 4 slots garantidos
   const slots = slotsElevador(elevadores);
 
@@ -441,6 +477,13 @@ export default function AdminPage() {
           onRemove={removerLembrete}
         />
       </div>
+
+      {/* Carros que voltaram (re-serviço) */}
+      <Retornos
+        itens={retornos}
+        onAdd={adicionarRetorno}
+        onRemove={removerRetorno}
+      />
 
       {/* Rádio da TV */}
       <RadioControle config={config} onSalvar={atualizarConfig} />
