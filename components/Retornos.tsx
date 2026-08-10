@@ -13,12 +13,6 @@ export function hojeISO(): string {
   return new Date(d.getTime() - off).toISOString().slice(0, 10);
 }
 
-// Mostra "14/07" a partir de "2026-07-14"
-function dataCurta(iso: string): string {
-  const [, m, d] = iso.split("-");
-  return `${d}/${m}`;
-}
-
 type Props = {
   itens: Retorno[];
   onAdd: (dados: {
@@ -27,13 +21,12 @@ type Props = {
     data: string;
     descricao: string;
   }) => void;
-  onRemove: (id: string) => void;
 };
 
-// Carros que voltaram (re-serviço). Registro rápido na recepção;
-// a consulta por período fica no Relatório.
-export default function Retornos({ itens, onAdd, onRemove }: Props) {
-  const { confirmar, avisar } = useDialog();
+// Carros que voltaram (re-serviço). Registro rápido na recepção + contador do
+// mês; a lista completa e a exclusão ficam no Relatório.
+export default function Retornos({ itens, onAdd }: Props) {
+  const { avisar } = useDialog();
   const [placa, setPlaca] = useState("");
   const [carro, setCarro] = useState("");
   const [data, setData] = useState(hojeISO());
@@ -56,8 +49,13 @@ export default function Retornos({ itens, onAdd, onRemove }: Props) {
     setDescricao("");
   };
 
-  // Na recepção mostra só os últimos; o histórico completo fica no Relatório.
-  const recentes = itens.slice(0, 5);
+  // Contador do mês corrente (ex.: "julho": 3)
+  const agora = new Date();
+  const mesNome = agora.toLocaleDateString("pt-BR", { month: "long" });
+  const prefixoMes = `${agora.getFullYear()}-${String(
+    agora.getMonth() + 1
+  ).padStart(2, "0")}`;
+  const totalMes = itens.filter((r) => r.data.startsWith(prefixoMes)).length;
 
   return (
     <section className="rounded-xl bg-jura-card p-6">
@@ -73,26 +71,19 @@ export default function Retornos({ itens, onAdd, onRemove }: Props) {
       </div>
 
       {/* Cadastro */}
-      <div className="space-y-2.5">
-        <div className="flex min-w-0 flex-wrap gap-2">
+      <div className="space-y-2">
+        <div className="flex min-w-0 gap-2">
           <input
             value={placa}
             onChange={(e) => setPlaca(e.target.value.toUpperCase())}
             placeholder="Placa"
-            className="w-24 shrink-0 rounded-lg border border-jura-border bg-jura-input px-2 py-2 font-mono uppercase outline-none focus:border-jura-red sm:w-32 sm:px-3"
+            className="w-24 shrink-0 rounded-lg border border-jura-border bg-jura-input px-2 py-2 font-mono uppercase outline-none focus:border-jura-red"
           />
           <input
             value={carro}
             onChange={(e) => setCarro(e.target.value)}
             placeholder="Carro (Gol 1.0)"
             className="min-w-0 flex-1 rounded-lg border border-jura-border bg-jura-input px-3 py-2 outline-none focus:border-jura-red"
-          />
-          <input
-            type="date"
-            value={data}
-            onChange={(e) => setData(e.target.value)}
-            title="Data do retorno (já vem com a data de hoje)"
-            className="shrink-0 rounded-lg border border-jura-border bg-jura-input px-2 py-2 font-mono text-sm outline-none focus:border-jura-red"
           />
         </div>
 
@@ -104,67 +95,32 @@ export default function Retornos({ itens, onAdd, onRemove }: Props) {
           className="w-full resize-y rounded-lg border border-jura-border bg-jura-input px-3 py-2 leading-snug outline-none focus:border-jura-red"
         />
 
-        <button
-          onClick={registrar}
-          className="w-full rounded-lg bg-jura-red px-4 py-2 font-bold uppercase tracking-wide text-white transition-opacity hover:opacity-90 sm:w-auto"
-        >
-          + Registrar retorno
-        </button>
+        <div className="flex min-w-0 gap-2">
+          <input
+            type="date"
+            value={data}
+            onChange={(e) => setData(e.target.value)}
+            title="Data do retorno (já vem com a data de hoje)"
+            className="min-w-0 shrink rounded-lg border border-jura-border bg-jura-input px-2 py-2 font-mono text-sm outline-none focus:border-jura-red"
+          />
+          <button
+            onClick={registrar}
+            className="min-w-0 flex-1 truncate rounded-lg bg-jura-red px-3 py-2 text-sm font-bold uppercase tracking-wide text-white transition-opacity hover:opacity-90"
+          >
+            + Registrar
+          </button>
+        </div>
       </div>
 
-      {/* Últimos registros */}
-      {recentes.length > 0 && (
-        <ul className="mt-5 space-y-2">
-          {recentes.map((r) => (
-            <li
-              key={r.id}
-              className="flex items-start gap-3 rounded-lg bg-jura-input/60 px-3 py-2"
-            >
-              <span className="shrink-0 font-mono text-sm font-bold text-jura-red">
-                {dataCurta(r.data)}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold">
-                  {r.carro || "—"}
-                  {r.placa && (
-                    <span className="ml-1.5 font-mono text-xs font-normal uppercase text-white/50">
-                      {r.placa}
-                    </span>
-                  )}
-                </p>
-                {r.descricao && (
-                  <p className="mt-0.5 whitespace-pre-line text-xs leading-snug text-jura-muted">
-                    {r.descricao}
-                  </p>
-                )}
-              </div>
-              <button
-                onClick={async () => {
-                  if (
-                    await confirmar({
-                      mensagem: `Remover o retorno de "${r.carro || r.placa}"?`,
-                      confirmar: "Remover",
-                      tom: "perigo",
-                    })
-                  )
-                    onRemove(r.id);
-                }}
-                className="shrink-0 rounded border border-jura-border px-1.5 text-xs text-jura-muted transition-colors hover:border-jura-red hover:text-jura-red"
-                title="Remover"
-              >
-                ✕
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {itens.length > recentes.length && (
-        <p className="mt-3 text-xs text-jura-muted">
-          Mostrando os {recentes.length} mais recentes de {itens.length}. Veja
-          todos em Consultar.
-        </p>
-      )}
+      {/* Total do mês corrente */}
+      <div className="mt-4 flex items-center justify-between gap-3 rounded-lg bg-jura-input/60 px-3 py-2">
+        <span className="min-w-0 truncate text-sm text-jura-muted">
+          Voltaram em <span className="capitalize">{mesNome}</span>
+        </span>
+        <span className="shrink-0 font-mono text-xl font-black tabular-nums text-jura-ink">
+          {totalMes}
+        </span>
+      </div>
     </section>
   );
 }

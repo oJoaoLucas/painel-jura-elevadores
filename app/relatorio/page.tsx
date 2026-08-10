@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase, type Historico, type Retorno } from "@/lib/supabase";
 import NavMenu from "@/components/NavMenu";
 import AuthGate from "@/components/AuthGate";
+import { useDialog } from "@/components/Dialog";
 
 type Periodo = "hoje" | "7dias" | "30dias" | "90dias";
 type Aba = "atendimento" | "retorno";
@@ -32,6 +33,7 @@ function desdeData(periodo: Periodo): string {
 }
 
 export default function RelatorioPage() {
+  const { confirmar, avisar } = useDialog();
   const [aba, setAba] = useState<Aba>("atendimento");
   const [historico, setHistorico] = useState<Historico[]>([]);
   const [retornos, setRetornos] = useState<Retorno[]>([]);
@@ -73,6 +75,23 @@ export default function RelatorioPage() {
         });
     }
   }, [periodo, aba]);
+
+  // Exclui um retorno registrado por engano
+  const excluirRetorno = async (r: Retorno) => {
+    const ok = await confirmar({
+      titulo: "Excluir retorno",
+      mensagem: `Apagar o registro de "${r.carro || r.placa || "—"}"?`,
+      confirmar: "Excluir",
+      tom: "perigo",
+    });
+    if (!ok) return;
+    const { error } = await supabase.from("retornos").delete().eq("id", r.id);
+    if (error) {
+      await avisar("Não deu pra excluir. Confira a internet e tente de novo.");
+      return;
+    }
+    setRetornos((cur) => cur.filter((x) => x.id !== r.id));
+  };
 
   // Métricas de atendimento
   const total = historico.length;
@@ -173,7 +192,8 @@ export default function RelatorioPage() {
                       <th className="py-2 pr-4">Data</th>
                       <th className="py-2 pr-4">Carro</th>
                       <th className="py-2 pr-4">Placa</th>
-                      <th className="py-2">O que aconteceu</th>
+                      <th className="py-2 pr-4">O que aconteceu</th>
+                      <th className="py-2 text-right">Excluir</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -188,8 +208,17 @@ export default function RelatorioPage() {
                         <td className="py-2 pr-4 font-mono uppercase text-white/70">
                           {r.placa || "—"}
                         </td>
-                        <td className="whitespace-pre-line py-2 text-white/70">
+                        <td className="whitespace-pre-line py-2 pr-4 text-white/70">
                           {r.descricao || "—"}
+                        </td>
+                        <td className="py-2 text-right">
+                          <button
+                            onClick={() => excluirRetorno(r)}
+                            className="rounded border border-jura-border px-2 py-0.5 text-jura-muted transition-colors hover:border-jura-red hover:text-jura-red"
+                            title="Excluir este retorno"
+                          >
+                            ✕
+                          </button>
                         </td>
                       </tr>
                     ))}

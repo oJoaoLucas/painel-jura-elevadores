@@ -397,11 +397,6 @@ export default function AdminPage() {
     if (ok) recarregarRetornos();
   };
 
-  const removerRetorno = async (id: string) => {
-    const ok = await gravar(supabase.from("retornos").delete().eq("id", id));
-    if (ok) recarregarRetornos();
-  };
-
   // 4 slots garantidos
   const slots = slotsElevador(elevadores);
 
@@ -478,15 +473,11 @@ export default function AdminPage() {
         />
       </div>
 
-      {/* Carros que voltaram (re-serviço) */}
-      <Retornos
-        itens={retornos}
-        onAdd={adicionarRetorno}
-        onRemove={removerRetorno}
-      />
-
-      {/* Rádio da TV */}
-      <RadioControle config={config} onSalvar={atualizarConfig} />
+      {/* Carros que voltaram + Rádio da TV: lado a lado em tela larga */}
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Retornos itens={retornos} onAdd={adicionarRetorno} />
+        <RadioControle config={config} onSalvar={atualizarConfig} />
+      </div>
     </main>
     </AuthGate>
   );
