@@ -61,6 +61,8 @@ export default function OrcamentoPage() {
     { id: 1, modelo: "", valor: "" },
   ]);
   const [copiado, setCopiado] = useState(false);
+  // Bicos novos entram por padrão; desmarque quando não for trocar.
+  const [bicos, setBicos] = useState(true);
 
   const taxa = TAXAS[parcelas] ?? 0;
 
@@ -89,26 +91,27 @@ export default function OrcamentoPage() {
   const texto = useMemo(() => {
     if (!podeGerar) return "";
     const linhas: string[] = [];
-    linhas.push(`*Orçamento - Pneus ${medida.trim()}*`);
-    linhas.push("");
     linhas.push(
-      `Valores referentes ${
-        qtdPneus === 1 ? "a 1 pneu" : `aos ${qtdPneus} pneus`
-      }, já com alinhamento, balanceamento e bicos novos inclusos.`
+      `Valores referentes a ${qtdPneus} ${
+        qtdPneus === 1 ? "pneu" : "pneus"
+      } ${medida.trim()}. Já incluso:`
     );
+    linhas.push("✅ Alinhamento");
+    linhas.push("✅ Balanceamento");
+    if (bicos) linhas.push("✅ Bicos novos");
     linhas.push("");
     opcoesValidas.forEach((o) => {
       const parcela = arredondarPara90((o.valorNum * (1 + taxa)) / parcelas);
-      linhas.push(`*${o.modelo.trim()}*`);
+      linhas.push(o.modelo.trim());
       linhas.push(`À vista: R$ ${fmt(o.valorNum)}`);
       linhas.push(`Ou até ${parcelas}x de R$ ${fmt(parcela)}`);
       linhas.push("");
     });
     linhas.push(
-      "*Obs.: valor para pneus montados na loja e à base de troca. Preço à vista válido para Pix, débito ou dinheiro.*"
+      "Obs.: valor para pneus montados na loja e à base de troca e preço à vista válido para Pix, débito ou dinheiro."
     );
     return linhas.join("\n");
-  }, [podeGerar, medida, qtdPneus, opcoesValidas, taxa, parcelas]);
+  }, [podeGerar, medida, qtdPneus, opcoesValidas, taxa, parcelas, bicos]);
 
   const copiar = async () => {
     if (!texto) return;
@@ -180,6 +183,22 @@ export default function OrcamentoPage() {
             </select>
           </label>
         </div>
+
+        {/* Itens inclusos no orçamento */}
+        <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-lg bg-jura-input/60 px-3 py-2.5">
+          <input
+            type="checkbox"
+            checked={bicos}
+            onChange={(e) => setBicos(e.target.checked)}
+            className="h-5 w-5 shrink-0 accent-jura-red"
+          />
+          <span className="min-w-0">
+            <span className="block font-semibold">Incluir bicos novos</span>
+            <span className="block text-sm text-jura-muted">
+              Desmarque quando não for trocar os bicos
+            </span>
+          </span>
+        </label>
       </section>
 
       {/* Lista de modelos */}
