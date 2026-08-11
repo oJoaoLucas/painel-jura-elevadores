@@ -94,7 +94,7 @@ export default function OrcamentoPage() {
     linhas.push(
       `Valores referentes a ${qtdPneus} ${
         qtdPneus === 1 ? "pneu" : "pneus"
-      } ${medida.trim()}. Já incluso:`
+      } ${medida.trim()} e já incluso:`
     );
     linhas.push("✅ Alinhamento");
     linhas.push("✅ Balanceamento");
