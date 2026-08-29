@@ -86,6 +86,17 @@ select v.nome, v.ord
 from (values ('Wagner',1),('Allysson',2),('Fabio',3),('Marcos',4),('Jura',5)) as v(nome, ord)
 where not exists (select 1 from mecanicos);
 
+-- Vocabulário de oficina pro comando por voz: correções de palavras que o
+-- reconhecimento de fala costuma entender errado (ex: "coxinha" -> "coxim").
+-- Cadastrado pela recepção em /configuracoes; aplicado antes de interpretar
+-- o comando (lib/voz-comando.ts).
+create table if not exists vocabulario_voz (
+  id uuid primary key default gen_random_uuid(),
+  ouvido text not null,
+  correto text not null,
+  created_at timestamptz not null default now()
+);
+
 -- ============================================================
 --  Índices — a tela de Relatório filtra/ordena historico por "saida".
 --  Sem índice a consulta faz varredura completa e piora conforme o
@@ -104,6 +115,7 @@ alter publication supabase_realtime add table aguardando;
 alter publication supabase_realtime add table historico;
 alter publication supabase_realtime add table config;
 alter publication supabase_realtime add table mecanicos;
+alter publication supabase_realtime add table vocabulario_voz;
 
 -- ============================================================
 --  RLS — "hardening leve" (sem auth de verdade; app usa a anon key).
@@ -158,3 +170,58 @@ create policy mecanicos_select on mecanicos for select to anon, authenticated us
 create policy mecanicos_insert on mecanicos for insert to anon, authenticated with check (true);
 create policy mecanicos_update on mecanicos for update to anon, authenticated using (true) with check (true);
 create policy mecanicos_delete on mecanicos for delete to anon, authenticated using (true);
+
+alter table vocabulario_voz enable row level security;
+create policy vocabulario_voz_select on vocabulario_voz for select to anon, authenticated using (true);
+create policy vocabulario_voz_insert on vocabulario_voz for insert to anon, authenticated with check (true);
+create policy vocabulario_voz_delete on vocabulario_voz for delete to anon, authenticated using (true);
+
+-- ============================================================
+--  Limpeza automática dos elevadores às 19h (todo dia)
+--  Libera qualquer elevador com carro — mesma lógica do botão "Liberar"
+--  (desconta pausa pendente e salva no histórico antes de limpar).
+-- ============================================================
+create extension if not exists pg_cron;
+
+create or replace function limpar_elevadores_diario()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  e record;
+  v_pausa_ms bigint;
+  v_entrada timestamptz;
+begin
+  for e in select * from elevadores where carro is not null or placa is not null loop
+    v_pausa_ms := case when e.pausado_em is not null
+      then greatest(0, (extract(epoch from (now() - e.pausado_em)) * 1000))::bigint
+      else 0 end;
+    v_entrada := case when e.ocupado_em is not null and v_pausa_ms > 0
+      then e.ocupado_em + make_interval(secs => v_pausa_ms / 1000.0)
+      else e.ocupado_em end;
+
+    insert into historico (elevador_id, placa, carro, servico, mecanico, entrada, saida)
+    values (e.id, e.placa, e.carro, e.servico, e.mecanico, v_entrada, now());
+
+    update elevadores
+      set status = 'livre', placa = null, carro = null, servico = null,
+          mecanico = null, ocupado_em = null, pausado_em = null,
+          previsto_min = null, updated_at = now()
+      where id = e.id;
+  end loop;
+end;
+$$;
+
+-- Remove agendamento antigo do mesmo nome, se houver (idempotente)
+select cron.unschedule(jobid)
+from cron.job
+where jobname = 'limpar-elevadores-19h';
+
+-- 19:00 horário de Brasília = 22:00 UTC (Brasil não usa horário de verão)
+select cron.schedule(
+  'limpar-elevadores-19h',
+  '0 22 * * *',
+  $$select limpar_elevadores_diario();$$
+);
