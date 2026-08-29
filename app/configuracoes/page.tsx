@@ -6,17 +6,21 @@ import {
   CONFIG_PADRAO,
   type Config,
   type Mecanico,
+  type VocabVoz,
 } from "@/lib/supabase";
 import NavMenu from "@/components/NavMenu";
 import AuthGate from "@/components/AuthGate";
 import { useDialog } from "@/components/Dialog";
-import { IconUser } from "@/components/Icon";
+import { IconUser, IconMic } from "@/components/Icon";
 
 export default function ConfiguracoesPage() {
   const { confirmar, avisar } = useDialog();
   const [config, setConfig] = useState<Config>(CONFIG_PADRAO);
   const [mecanicos, setMecanicos] = useState<Mecanico[]>([]);
   const [novo, setNovo] = useState("");
+  const [vocab, setVocab] = useState<VocabVoz[]>([]);
+  const [novoOuvido, setNovoOuvido] = useState("");
+  const [novoCorreto, setNovoCorreto] = useState("");
 
   useEffect(() => {
     supabase
@@ -26,6 +30,7 @@ export default function ConfiguracoesPage() {
       .single()
       .then(({ data }) => data && setConfig(data as Config));
     carregarMecanicos();
+    carregarVocab();
   }, []);
 
   const carregarMecanicos = () =>
@@ -87,6 +92,33 @@ export default function ConfiguracoesPage() {
       await supabase.from("mecanicos").delete().eq("id", m.id);
       carregarMecanicos();
     }
+  };
+
+  // ----- Vocabulário do comando por voz -----
+  const carregarVocab = () =>
+    supabase
+      .from("vocabulario_voz")
+      .select("*")
+      .order("created_at")
+      .then(({ data }) => data && setVocab(data as VocabVoz[]));
+
+  const addVocab = async () => {
+    const ouvido = novoOuvido.trim();
+    const correto = novoCorreto.trim();
+    if (!ouvido || !correto) return;
+    if (vocab.some((v) => v.ouvido.toLowerCase() === ouvido.toLowerCase())) {
+      await avisar(`"${ouvido}" já tem uma correção cadastrada.`);
+      return;
+    }
+    setNovoOuvido("");
+    setNovoCorreto("");
+    await supabase.from("vocabulario_voz").insert({ ouvido, correto });
+    carregarVocab();
+  };
+
+  const removerVocab = async (v: VocabVoz) => {
+    await supabase.from("vocabulario_voz").delete().eq("id", v.id);
+    carregarVocab();
   };
 
   return (
@@ -226,6 +258,72 @@ export default function ConfiguracoesPage() {
               A equipe aparece nos selects de mecânico (elevadores, aguardando e
               destinatário de lembrete), em tempo real.
             </p>
+          </section>
+
+          {/* Vocabulário do comando por voz */}
+          <section className="rounded-xl bg-jura-card p-6 lg:col-span-2">
+            <div className="mb-5 flex items-center gap-2">
+              <IconMic className="h-5 w-5 text-jura-muted" />
+              <h2 className="section-title text-lg">
+                Palavras de oficina (comando por voz)
+              </h2>
+            </div>
+            <p className="mb-5 text-sm text-jura-muted">
+              Quando o reconhecimento de voz entender uma palavra errada (ex:
+              &quot;coxinha&quot; em vez de &quot;coxim&quot;), cadastre a correção
+              aqui. Vale tanto falando quanto digitando.
+            </p>
+
+            <div className="mb-5 flex flex-wrap items-center gap-2">
+              <input
+                value={novoOuvido}
+                onChange={(e) => setNovoOuvido(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addVocab()}
+                placeholder="Quando ouvir (ex: coxinha)"
+                className="min-w-0 flex-1 rounded-lg border border-jura-border bg-jura-input px-3 py-2 outline-none focus:border-jura-red"
+              />
+              <span className="text-jura-muted">→</span>
+              <input
+                value={novoCorreto}
+                onChange={(e) => setNovoCorreto(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addVocab()}
+                placeholder="Quero dizer (ex: coxim)"
+                className="min-w-0 flex-1 rounded-lg border border-jura-border bg-jura-input px-3 py-2 outline-none focus:border-jura-red"
+              />
+              <button
+                onClick={addVocab}
+                className="rounded-lg bg-jura-red px-4 py-2 font-bold uppercase tracking-wide text-white transition-opacity hover:opacity-90"
+              >
+                + Adicionar
+              </button>
+            </div>
+
+            {vocab.length === 0 ? (
+              <p className="text-jura-muted">Nenhuma correção cadastrada.</p>
+            ) : (
+              <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {vocab.map((v) => (
+                  <li
+                    key={v.id}
+                    className="flex items-center gap-2 rounded-lg bg-jura-input/60 px-3 py-2"
+                  >
+                    <span className="min-w-0 flex-1 truncate">
+                      <span className="text-jura-muted line-through">
+                        {v.ouvido}
+                      </span>{" "}
+                      → <span className="font-semibold">{v.correto}</span>
+                    </span>
+                    <button
+                      onClick={() => removerVocab(v)}
+                      className="shrink-0 rounded border border-jura-red px-2 py-0.5 text-sm text-jura-red transition-colors hover:bg-jura-red hover:text-white"
+                      title="Remover"
+                    >
+                      ✕
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         </div>
       </main>

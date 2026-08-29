@@ -58,7 +58,7 @@ export default function Retornos({ itens, onAdd }: Props) {
   const totalMes = itens.filter((r) => r.data.startsWith(prefixoMes)).length;
 
   return (
-    <section className="rounded-xl bg-jura-card p-6">
+    <section className="min-w-0 rounded-xl bg-jura-card p-4 sm:p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h2 className="section-title text-lg">Carros que voltaram</h2>
         <Link

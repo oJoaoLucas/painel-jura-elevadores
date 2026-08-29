@@ -124,6 +124,16 @@ export type Mecanico = {
   created_at: string;
 };
 
+// Correção de palavra do comando por voz: "ouvido" é o que o reconhecimento
+// de fala costuma entender errado (ex: "coxinha"), "correto" é o termo de
+// oficina de verdade (ex: "coxim").
+export type VocabVoz = {
+  id: string;
+  ouvido: string;
+  correto: string;
+  created_at: string;
+};
+
 // Catálogo de preços de pneus (em blocos)
 export type TabelaMedida = {
   id: string;

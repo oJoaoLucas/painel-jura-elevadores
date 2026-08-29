@@ -20,6 +20,8 @@ import Aguardando from "@/components/Aguardando";
 import Retornos from "@/components/Retornos";
 import RadioControle from "@/components/RadioControle";
 import AtualizarTV from "@/components/AtualizarTV";
+import ComandoVoz from "@/components/ComandoVoz";
+import type { Comando } from "@/lib/voz-comando";
 import NavMenu from "@/components/NavMenu";
 import AuthGate from "@/components/AuthGate";
 import { useDialog } from "@/components/Dialog";
@@ -196,6 +198,18 @@ export default function AdminPage() {
       supabase
         .from("elevadores")
         .update({ ...dados, updated_at: new Date().toISOString() })
+        .eq("id", id)
+    );
+    if (ok) recarregarElevadores();
+  };
+
+  // Apaga só o texto do serviço, mantendo carro/placa/mecânico/cronômetro —
+  // diferente de "liberar", que esvazia tudo e manda pro histórico.
+  const limparServicoElevador = async (id: number) => {
+    const ok = await gravar(
+      supabase
+        .from("elevadores")
+        .update({ servico: null, updated_at: new Date().toISOString() })
         .eq("id", id)
     );
     if (ok) recarregarElevadores();
@@ -397,6 +411,95 @@ export default function AdminPage() {
     if (ok) recarregarRetornos();
   };
 
+  // ----- Comando por voz -----
+  // O componente já mostrou o que entendeu e a recepção confirmou; aqui só
+  // despachamos pra mesma função que os botões da tela usam.
+  const executarComando = async (c: Comando) => {
+    switch (c.acao) {
+      case "ocupar": {
+        // Se o elevador já está ocupado e a fala não repetiu carro/placa
+        // (ou repetiu o mesmo carro), é uma ATUALIZAÇÃO: acrescenta o
+        // serviço novo ao que já estava lá, sem apagar nada — isso é o que
+        // permite falar só "elevador 3 mais o kit" sem redizer tudo de novo.
+        const atual = elevadores.find((e) => e.id === c.elevador);
+        const ocupado = !!(
+          atual &&
+          atual.status !== "livre" &&
+          (atual.carro || atual.placa)
+        );
+        const carroBate =
+          !c.carro ||
+          !atual?.carro ||
+          atual.carro.trim().toLowerCase() === c.carro.trim().toLowerCase();
+        const placaBate =
+          !c.placa ||
+          !atual?.placa ||
+          atual.placa.trim().toUpperCase() === c.placa.trim().toUpperCase();
+
+        if (ocupado && carroBate && placaBate) {
+          const linhasAtuais = (atual!.servico || "")
+            .split("\n")
+            .map((s) => s.trim())
+            .filter(Boolean);
+          const linhasNovas = c.servico
+            .split("\n")
+            .map((s) => s.trim())
+            .filter(Boolean);
+          const combinadas = [...linhasAtuais];
+          for (const l of linhasNovas)
+            if (!combinadas.some((x) => x.toLowerCase() === l.toLowerCase()))
+              combinadas.push(l);
+
+          await ocuparElevador(c.elevador, {
+            placa: c.placa || atual!.placa || "",
+            carro: c.carro || atual!.carro || "",
+            servico: combinadas.join("\n"),
+            mecanico: c.mecanico || atual!.mecanico || "",
+            previsto_min: c.previsto_min ?? atual!.previsto_min ?? null,
+          });
+        } else {
+          await ocuparElevador(c.elevador, {
+            placa: c.placa,
+            carro: c.carro,
+            servico: c.servico,
+            mecanico: c.mecanico,
+            previsto_min: c.previsto_min,
+          });
+        }
+        break;
+      }
+      case "aguardando":
+        await adicionarAguardando({
+          placa: c.placa,
+          carro: c.carro,
+          servico: c.servico,
+          mecanico: c.mecanico,
+        });
+        break;
+      case "fila":
+        await adicionarFila(c.placa || "—", c.carro || "—");
+        break;
+      case "lembrete":
+        await adicionarLembrete(c.texto, c.destinatario, c.prioridade);
+        break;
+      case "liberar":
+        await liberarElevador(c.elevador);
+        break;
+      case "pronto":
+        await mudarStatus(c.elevador, "pronto");
+        break;
+      case "pausar":
+        await pausarElevador(c.elevador, true);
+        break;
+      case "retomar":
+        await pausarElevador(c.elevador, false);
+        break;
+      case "limpar":
+        await limparServicoElevador(c.elevador);
+        break;
+    }
+  };
+
   // 4 slots garantidos
   const slots = slotsElevador(elevadores);
 
@@ -412,6 +515,13 @@ export default function AdminPage() {
       <div className="flex justify-end">
         <AtualizarTV onSalvar={atualizarConfig} />
       </div>
+
+      {/* Entrada por voz — evita digitar tudo no celular */}
+      <ComandoVoz
+        elevadores={slots}
+        elevadoresLivres={elevadoresLivres}
+        onExecutar={executarComando}
+      />
 
       {/* 1. Elevadores (esquerda) + Carros aguardando (bloco à direita) */}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">

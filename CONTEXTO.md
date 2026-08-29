@@ -133,13 +133,13 @@ components/
   Icon.tsx              ícones SVG
   Logo.tsx              logo sobre "placa" branca (NÃO some no fundo escuro)
   NavMenu.tsx           cabeçalho fixo + navegação + Sair (admin/orcamento/relatorio/config)
-  AuthGate.tsx          tela de login (senha 200903) — protege tudo menos a TV
+  AuthGate.tsx          tela de login (senha via NEXT_PUBLIC_ADMIN_PIN) — protege tudo menos a TV
   Dialog.tsx            modal de confirmação/aviso do site (useDialog)
   MecanicosProvider.tsx carrega a lista de mecânicos do banco (realtime)
 lib/
   supabase.ts           client + TIPOS (Config tem voz_ativa; tipo Mecanico)
   constantes.ts         SERVICOS_PADRAO (ainda hardcoded) + helpers de serviço
-  auth.ts               senha fixa 200903 + helpers (localStorage)
+  auth.ts               senha via env NEXT_PUBLIC_ADMIN_PIN + helpers (localStorage)
   status.ts             STATUS_META + tempoDecorrido + carroParado
   som.ts                beeps + VOZ (falar() Web Speech, tocarVoz() MP3)
 public/voz/             MP3 opcionais de voz humana (LEIA-ME.txt com os nomes)
@@ -202,7 +202,7 @@ supabase.sql            schema completo + RLS por operação + mecanicos (rodar 
 5. Abra o Claude Code na pasta e mande ele **ler este `CONTEXTO.md` primeiro — inclusive a
    seção 13**, que tem TUDO que mudou (login, /orcamento, /configuracoes, voz, modal, RLS,
    mecânicos no banco).
-6. Login do sistema: senha **200903** (Recepção/Orçamento/Relatório/Config). TV não pede.
+6. Login do sistema: senha definida em `NEXT_PUBLIC_ADMIN_PIN` (Recepção/Orçamento/Relatório/Config). TV não pede.
 7. Próximos passos sugeridos: **testar o fluxo**, depois **deploy na Vercel** + **Raspberry**
    (guia em `RASPBERRY-TV.md`).
 
@@ -219,10 +219,11 @@ O projeto está **aninhado**: a raiz é `C:\PROJETOS\painel jura\` e o **app Nex
 - `RASPBERRY-TV.md` — guia de boot automático no Raspberry (kiosk).
 
 ### Login / senha (NOVO)
-- Trava simples por **senha fixa `200903`** (sem cadastro). Código em `lib/auth.ts`
-  (estado no `localStorage`) + componente `components/AuthGate.tsx`.
+- Trava simples por **senha definida em `NEXT_PUBLIC_ADMIN_PIN`** (env var, sem cadastro,
+  fora do código-fonte/repositório). Código em `lib/auth.ts` (estado no `localStorage`)
+  + componente `components/AuthGate.tsx`.
 - **Recepção, Orçamento e Relatório exigem login.** A **TV (`/painel`) não pede nada.**
-- Botão **Sair** no menu. O antigo "PIN" das Configurações foi removido (a senha agora é fixa).
+- Botão **Sair** no menu. O antigo "PIN" das Configurações foi removido (a senha agora vem de env var).
 
 ### Navegação (NOVO)
 - `components/NavMenu.tsx` — cabeçalho **fixo (sticky)** e **igual nas 3 telas**

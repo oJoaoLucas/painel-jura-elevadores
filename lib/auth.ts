@@ -1,8 +1,9 @@
 "use client";
 
 // Trava simples de acesso (rede local, sem backend de login).
-// A senha é fixa e o estado fica no localStorage do PC da recepção.
-export const SENHA_RECEPCAO = "200903";
+// A senha vem de env var (não fica no código-fonte/repositório) e o estado
+// fica no localStorage do PC da recepção.
+const SENHA_RECEPCAO = process.env.NEXT_PUBLIC_ADMIN_PIN || "";
 const CHAVE = "jura_auth";
 const EVENTO = "jura-auth";
 

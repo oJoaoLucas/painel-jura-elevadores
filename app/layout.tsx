@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { DialogProvider } from "@/components/Dialog";
 import { MecanicosProvider } from "@/components/MecanicosProvider";
+import { VocabularioProvider } from "@/components/VocabularioProvider";
 import RegistrarPWA from "@/components/RegistrarPWA";
 
 export const metadata: Metadata = {
@@ -27,7 +28,9 @@ export default function RootLayout({
       <body className="bg-jura-bg text-white antialiased">
         <RegistrarPWA />
         <DialogProvider>
-          <MecanicosProvider>{children}</MecanicosProvider>
+          <MecanicosProvider>
+            <VocabularioProvider>{children}</VocabularioProvider>
+          </MecanicosProvider>
         </DialogProvider>
       </body>
     </html>

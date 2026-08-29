@@ -213,3 +213,14 @@ export function IconSettings({ className = "h-4 w-4" }: Props) {
     </svg>
   );
 }
+
+// Microfone — entrada de comando por voz na Recepção.
+export function IconMic({ className = "h-4 w-4" }: Props) {
+  return (
+    <svg {...base} className={className}>
+      <rect x="9" y="2" width="6" height="11" rx="3" />
+      <path d="M5 10v1a7 7 0 0 0 14 0v-1" />
+      <path d="M12 18v4M8 22h8" />
+    </svg>
+  );
+}
