@@ -260,9 +260,16 @@ export default function PainelPage() {
         </button>
       )}
 
-      {/* Cabeçalho compacto — logo + uma linha pequena com data e hora */}
+      {/* Cabeçalho compacto — logo + clima/data à esquerda, hora à direita */}
       <header className="flex items-center justify-between">
-        <Logo imgClassName="h-9 w-auto" textClassName="text-2xl" />
+        <div className="flex items-center gap-3">
+          <Logo imgClassName="h-9 w-auto" textClassName="text-2xl" />
+          <span className="hidden h-9 w-px bg-jura-line sm:block" />
+          <ClimaTempo />
+          <span className="hidden font-mono text-lg font-extrabold capitalize text-jura-ink sm:block">
+            {data || ""}
+          </span>
+        </div>
         <RadioPlayer config={config} />
         <div className="flex items-center gap-3 text-jura-muted">
           {!conectado && (
@@ -276,15 +283,8 @@ export default function PainelPage() {
               <IconMute className="h-5 w-5" />
             </span>
           )}
-          <ClimaTempo />
-          <span className="hidden h-9 w-px bg-jura-line sm:block" />
-          <span className="flex flex-col items-end leading-none">
-            <span className="font-mono text-4xl font-bold tabular-nums text-jura-ink">
-              {hora || "--:--"}
-            </span>
-            <span className="mt-0.5 font-mono text-sm capitalize text-jura-muted">
-              {data || ""}
-            </span>
+          <span className="font-mono text-4xl font-bold tabular-nums text-jura-ink">
+            {hora || "--:--"}
           </span>
         </div>
       </header>

@@ -55,14 +55,14 @@ export default function ClimaTempo() {
       className="flex items-center gap-2"
       title={`Araras-SP · ${texto}`}
     >
-      <span className="text-2xl leading-none" aria-hidden>
+      <span className="text-3xl leading-none" aria-hidden>
         {icone}
       </span>
       <span className="flex flex-col leading-none">
-        <span className="font-mono text-xl font-bold text-jura-ink">
+        <span className="font-mono text-2xl font-extrabold text-jura-ink">
           {dado.temp}°
         </span>
-        <span className="text-[11px] text-jura-muted">{texto}</span>
+        <span className="text-sm font-bold text-jura-muted">{texto}</span>
       </span>
     </span>
   );
