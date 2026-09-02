@@ -20,9 +20,9 @@ import { slotsElevador } from "@/lib/status";
 import ElevadorCard from "@/components/ElevadorCard";
 import FilaAlinhamento from "@/components/FilaAlinhamento";
 import Lembretes from "@/components/Lembretes";
-import RadioPlayer from "@/components/RadioPlayer";
 import ClimaTempo from "@/components/ClimaTempo";
 import Aniversariante from "@/components/Aniversariante";
+import DicasManutencao from "@/components/DicasManutencao";
 import TvGuard from "@/components/TvGuard";
 import Logo from "@/components/Logo";
 import { IconMute, IconWifiOff } from "@/components/Icon";
@@ -244,22 +244,23 @@ export default function PainelPage() {
         </button>
       )}
 
-      {/* Cabeçalho compacto — logo + hora/clima/data bem destacados à esquerda */}
-      <header className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      {/* Cabeçalho compacto — logo + hora/clima/data à esquerda + dica revezando */}
+      <header className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-4">
           <Logo imgClassName="h-9 w-auto" textClassName="text-2xl" />
           <span className="hidden h-10 w-px bg-jura-line sm:block" />
-          <span className="font-mono text-5xl font-black leading-none tabular-nums text-jura-ink">
+          <span className="shrink-0 font-mono text-5xl font-black leading-none tabular-nums text-jura-ink">
             {hora || "--:--"}
           </span>
           <span className="hidden h-10 w-px bg-jura-line sm:block" />
           <ClimaTempo />
-          <span className="hidden font-mono text-lg font-extrabold capitalize text-jura-ink sm:block">
+          <span className="hidden shrink-0 font-mono text-lg font-extrabold capitalize text-jura-ink sm:block">
             {data || ""}
           </span>
+          <span className="hidden h-10 w-px bg-jura-line sm:block" />
+          <DicasManutencao />
         </div>
-        <RadioPlayer config={config} />
-        <div className="flex items-center gap-3 text-jura-muted">
+        <div className="flex shrink-0 items-center gap-3 text-jura-muted">
           {!conectado && (
             <span className="eyebrow flex animate-pulse items-center gap-1 rounded border border-jura-amber px-2 py-0.5 text-sm text-jura-amber">
               <IconWifiOff className="h-4 w-4" />
@@ -278,7 +279,7 @@ export default function PainelPage() {
       <Aniversariante />
 
       {/* Elevadores — ocupam a maior parte da tela, preenchendo o quadrado */}
-      <section className="grid min-h-0 flex-[4] grid-cols-4 gap-3">
+      <section className="grid min-h-0 flex-[6] grid-cols-4 gap-3">
         {slots.map((el) => (
           <ElevadorCard
             key={el.id}

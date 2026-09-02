@@ -98,16 +98,6 @@ function nota(freq: number, inicio: number, dur: number, volume: number) {
   brilho.stop(inicio + dur);
 }
 
-// Avisa a rádio (RadioPlayer) que vai apitar, pra ela abaixar a música por um
-// instante e o beep cortar por cima. Desacoplado via evento de janela.
-function sinalizarBeep() {
-  try {
-    window.dispatchEvent(new Event("jura-beep"));
-  } catch {
-    /* ignora */
-  }
-}
-
 // Beep de mudança de elevador. status "pronto" toca um tom triplo de atenção.
 export function beepElevador(
   elevadorId: number,
@@ -116,7 +106,6 @@ export function beepElevador(
 ) {
   const c = getCtx();
   if (!c) return;
-  sinalizarBeep();
   const freq = TOM_ELEVADOR[elevadorId] || 880;
   const t = c.currentTime;
 
@@ -134,7 +123,6 @@ export function beepElevador(
 export function beepFila(volume = 0.3) {
   const c = getCtx();
   if (!c) return;
-  sinalizarBeep();
   const t = c.currentTime;
   nota(523, t, 0.15, volume);
   nota(523, t + 0.18, 0.2, volume);
@@ -144,7 +132,6 @@ export function beepFila(volume = 0.3) {
 export function beepAviso(volume = 0.3) {
   const c = getCtx();
   if (!c) return;
-  sinalizarBeep();
   const t = c.currentTime;
   nota(880, t, 0.12, volume);
   nota(1108, t + 0.14, 0.2, volume);
