@@ -9,14 +9,7 @@ import {
   type Lembrete,
   type Config,
 } from "@/lib/supabase";
-import {
-  beepElevador,
-  beepFila,
-  beepAviso,
-  destravarSom,
-  somPronto,
-  tocarAudio,
-} from "@/lib/som";
+import { destravarSom, somPronto, tocarAudio } from "@/lib/som";
 import { slotsElevador, carroParado } from "@/lib/status";
 import {
   arquivoMecanico,
@@ -85,11 +78,7 @@ export default function PainelPage() {
           const passou = carroParado(el.ocupado_em, d, cfg.alerta_horas);
           if (passou && !alertadosRef.current.has(el.id)) {
             alertadosRef.current.add(el.id);
-            tocarAudio("olha_o_bolo_chegando_festivo", cfg.volume).then(
-              (ok) => {
-                if (!ok) beepElevador(el.id, "pronto", cfg.volume);
-              }
-            );
+            tocarAudio("olha_o_bolo_chegando_festivo", cfg.volume);
           }
         }
       }
@@ -187,10 +176,7 @@ export default function PainelPage() {
                 tocarAudio(
                   arquivoElevador(novo.id, evento),
                   configRef.current.volume
-                ).then((ok) => {
-                  if (!ok)
-                    beepElevador(novo.id, novo.status, configRef.current.volume);
-                });
+                );
               }
             }
           }
@@ -207,12 +193,7 @@ export default function PainelPage() {
         (payload) => {
           // Novo carro entrou na fila de alinhamento
           if (payload.eventType === "INSERT" && configRef.current.som_ativo) {
-            tocarAudio(
-              "novo_carro_para_alinhar",
-              configRef.current.volume
-            ).then((ok) => {
-              if (!ok) beepFila(configRef.current.volume);
-            });
+            tocarAudio("novo_carro_para_alinhar", configRef.current.volume);
           }
           supabase
             .from("fila_alinhamento")
@@ -236,12 +217,7 @@ export default function PainelPage() {
               ? tocarAudio(arquivoMec, configRef.current.volume)
               : Promise.resolve(false);
             tentativa.then((ok) => {
-              if (ok) return;
-              tocarAudio("novo_aviso", configRef.current.volume).then(
-                (ok2) => {
-                  if (!ok2) beepAviso(configRef.current.volume);
-                }
-              );
+              if (!ok) tocarAudio("novo_aviso", configRef.current.volume);
             });
           }
           supabase
