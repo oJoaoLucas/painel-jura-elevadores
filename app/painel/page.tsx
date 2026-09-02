@@ -260,11 +260,15 @@ export default function PainelPage() {
         </button>
       )}
 
-      {/* Cabeçalho compacto — logo + clima/data à esquerda, hora à direita */}
+      {/* Cabeçalho compacto — logo + hora/clima/data bem destacados à esquerda */}
       <header className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <Logo imgClassName="h-9 w-auto" textClassName="text-2xl" />
-          <span className="hidden h-9 w-px bg-jura-line sm:block" />
+          <span className="hidden h-10 w-px bg-jura-line sm:block" />
+          <span className="font-mono text-5xl font-black leading-none tabular-nums text-jura-ink">
+            {hora || "--:--"}
+          </span>
+          <span className="hidden h-10 w-px bg-jura-line sm:block" />
           <ClimaTempo />
           <span className="hidden font-mono text-lg font-extrabold capitalize text-jura-ink sm:block">
             {data || ""}
@@ -283,9 +287,6 @@ export default function PainelPage() {
               <IconMute className="h-5 w-5" />
             </span>
           )}
-          <span className="font-mono text-4xl font-bold tabular-nums text-jura-ink">
-            {hora || "--:--"}
-          </span>
         </div>
       </header>
 
