@@ -136,3 +136,34 @@ export function beepAviso(volume = 0.3) {
   nota(880, t, 0.12, volume);
   nota(1108, t + 0.14, 0.2, volume);
 }
+
+// ----- Voz (arquivos MP3 em /public/audios) -----
+// Toca /audios/<nome>.mp3. Resolve true se tocou, false se o arquivo não
+// existe ou falhou — quem chamou cai no beep como fallback (nunca fica mudo).
+// Volume um pouco mais alto que o beep pra voz ficar clara.
+export function tocarAudio(nome: string, volume = 0.3): Promise<boolean> {
+  return new Promise((resolve) => {
+    try {
+      const audio = new Audio(`/audios/${nome}.mp3`);
+      audio.volume = Math.max(0.2, Math.min(1, volume * 1.5));
+      let resolvido = false;
+      const ok = () => {
+        if (!resolvido) {
+          resolvido = true;
+          resolve(true);
+        }
+      };
+      const falhou = () => {
+        if (!resolvido) {
+          resolvido = true;
+          resolve(false);
+        }
+      };
+      audio.addEventListener("playing", ok, { once: true });
+      audio.addEventListener("error", falhou, { once: true });
+      audio.play().catch(falhou);
+    } catch {
+      resolve(false);
+    }
+  });
+}

@@ -15,8 +15,14 @@ import {
   beepAviso,
   destravarSom,
   somPronto,
+  tocarAudio,
 } from "@/lib/som";
-import { slotsElevador } from "@/lib/status";
+import { slotsElevador, carroParado } from "@/lib/status";
+import {
+  arquivoMecanico,
+  arquivoElevador,
+  eventoElevador,
+} from "@/lib/audioMapa";
 import ElevadorCard from "@/components/ElevadorCard";
 import FilaAlinhamento from "@/components/FilaAlinhamento";
 import Lembretes from "@/components/Lembretes";
@@ -41,6 +47,7 @@ export default function PainelPage() {
   const configRef = useRef<Config>(CONFIG_PADRAO);
   const recarregouRef = useRef(false);
   const tvReloadRef = useRef<number | null>(null);
+  const alertadosRef = useRef<Set<number>>(new Set()); // elevadores já anunciados como "bolo" (3h+)
   elevadoresRef.current = elevadores;
   configRef.current = config;
 
@@ -63,6 +70,30 @@ export default function PainelPage() {
     const t = setInterval(() => {
       const d = new Date();
       setAgora(d);
+
+      // Anúncio "bolo" quando um elevador cruza o limite de alerta (padrão 3h).
+      // Toca só UMA vez por ocupação — reseta quando o elevador libera/troca de carro.
+      const cfg = configRef.current;
+      if (cfg.som_ativo) {
+        for (const el of elevadoresRef.current) {
+          const semAlerta =
+            el.status === "livre" || !!el.pausado_em || !el.ocupado_em;
+          if (semAlerta) {
+            alertadosRef.current.delete(el.id);
+            continue;
+          }
+          const passou = carroParado(el.ocupado_em, d, cfg.alerta_horas);
+          if (passou && !alertadosRef.current.has(el.id)) {
+            alertadosRef.current.add(el.id);
+            tocarAudio("olha_o_bolo_chegando_festivo", cfg.volume).then(
+              (ok) => {
+                if (!ok) beepElevador(el.id, "pronto", cfg.volume);
+              }
+            );
+          }
+        }
+      }
+
       // Recarrega uma vez por dia às 04:00. Marca o dia no sessionStorage (persiste
       // pelo reload) pra não entrar em loop de reload durante o minuto 0.
       if (d.getHours() === 4 && d.getMinutes() === 0 && !recarregouRef.current) {
@@ -145,9 +176,22 @@ export default function PainelPage() {
         (payload) => {
           const novo = payload.new as Elevador;
           if (novo && novo.id) {
-            // Beep em QUALQUER atualização do elevador (status, serviço, etc.)
-            if (configRef.current.som_ativo) {
-              beepElevador(novo.id, novo.status, configRef.current.volume);
+            const anterior = elevadoresRef.current.find((e) => e.id === novo.id);
+            const evento = eventoElevador(anterior, novo);
+            if (evento) {
+              // Nova ocupação (ou liberação) reinicia a checagem do "bolo"
+              if (evento !== "pausado" && evento !== "despausado" && evento !== "teve_atualizacao") {
+                alertadosRef.current.delete(novo.id);
+              }
+              if (configRef.current.som_ativo) {
+                tocarAudio(
+                  arquivoElevador(novo.id, evento),
+                  configRef.current.volume
+                ).then((ok) => {
+                  if (!ok)
+                    beepElevador(novo.id, novo.status, configRef.current.volume);
+                });
+              }
             }
           }
           supabase
@@ -161,9 +205,14 @@ export default function PainelPage() {
         "postgres_changes",
         { event: "*", schema: "public", table: "fila_alinhamento" },
         (payload) => {
-          // Novo carro entrou na fila de alinhamento -> beep
+          // Novo carro entrou na fila de alinhamento
           if (payload.eventType === "INSERT" && configRef.current.som_ativo) {
-            beepFila(configRef.current.volume);
+            tocarAudio(
+              "novo_carro_para_alinhar",
+              configRef.current.volume
+            ).then((ok) => {
+              if (!ok) beepFila(configRef.current.volume);
+            });
           }
           supabase
             .from("fila_alinhamento")
@@ -176,9 +225,24 @@ export default function PainelPage() {
         "postgres_changes",
         { event: "*", schema: "public", table: "lembretes" },
         (payload) => {
-          // Novo recado da recepção -> beep
+          // Novo recado da recepção — se tiver destinatário conhecido, chama
+          // o mecânico pelo nome; senão, aviso genérico.
           if (payload.eventType === "INSERT" && configRef.current.som_ativo) {
-            beepAviso(configRef.current.volume);
+            const novo = payload.new as Lembrete;
+            const arquivoMec = novo?.destinatario
+              ? arquivoMecanico(novo.destinatario)
+              : null;
+            const tentativa = arquivoMec
+              ? tocarAudio(arquivoMec, configRef.current.volume)
+              : Promise.resolve(false);
+            tentativa.then((ok) => {
+              if (ok) return;
+              tocarAudio("novo_aviso", configRef.current.volume).then(
+                (ok2) => {
+                  if (!ok2) beepAviso(configRef.current.volume);
+                }
+              );
+            });
           }
           supabase
             .from("lembretes")
