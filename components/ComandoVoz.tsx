@@ -222,18 +222,6 @@ export default function ComandoVoz({
         </p>
       )}
 
-      {/* Exemplos: some quando já tem algo em andamento, pra não poluir */}
-      {!comando && !texto && (
-        <ul className="mt-2 space-y-0.5 text-sm leading-snug text-jura-muted">
-          <li>“Elevador 1 Gol alinhamento”</li>
-          <li>“Elevador 3 C3 amortecedor + kit + pivô”</li>
-          <li>“Elevador 3 também precisa trocar o filtro” (acrescenta, sem apagar)</li>
-          <li>“Liberar elevador 3” · “Elevador 2 pronto” · “Pausa o elevador 4”</li>
-          <li>“Limpar o elevador 3” (apaga só o serviço escrito, mantém o carro)</li>
-          <li>“Recado pro João comprar filtro de óleo”</li>
-        </ul>
-      )}
-
       {erro && (
         <p className="mt-2 flex items-start gap-2 text-sm font-semibold text-jura-amber">
           <IconAlert className="mt-0.5 h-4 w-4 shrink-0" />
