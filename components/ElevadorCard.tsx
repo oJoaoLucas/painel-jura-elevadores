@@ -228,20 +228,20 @@ function ElevadorPainel({
           {tempo && (
             <span className="flex shrink-0 flex-col items-end leading-tight">
               <span
-                className="flex items-center gap-1 font-mono text-sm font-bold tabular-nums"
+                className="flex items-center gap-1.5 font-mono text-lg font-extrabold tabular-nums"
                 style={{
                   color: pausado
                     ? COR_PAUSA
                     : alerta
                       ? COR_ALERTA_TEXTO
-                      : "rgba(255,255,255,0.55)",
+                      : "rgba(255,255,255,0.85)",
                 }}
               >
-                <IconClock className="h-3.5 w-3.5" />
+                <IconClock className="h-4 w-4" />
                 {tempo}
               </span>
               {restante && (
-                <span className="font-semibold text-[0.7em] text-jura-muted">
+                <span className="font-semibold text-[0.65em] text-jura-muted">
                   {restante.texto}
                 </span>
               )}
