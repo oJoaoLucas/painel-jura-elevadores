@@ -8,7 +8,6 @@ import {
   type FilaItem,
   type Lembrete,
   type Config,
-  type Aguardando,
 } from "@/lib/supabase";
 import {
   beepElevador,
@@ -21,7 +20,6 @@ import { slotsElevador } from "@/lib/status";
 import ElevadorCard from "@/components/ElevadorCard";
 import FilaAlinhamento from "@/components/FilaAlinhamento";
 import Lembretes from "@/components/Lembretes";
-import AguardandoPainel from "@/components/AguardandoPainel";
 import RadioPlayer from "@/components/RadioPlayer";
 import ClimaTempo from "@/components/ClimaTempo";
 import Aniversariante from "@/components/Aniversariante";
@@ -33,7 +31,6 @@ export default function PainelPage() {
   const [elevadores, setElevadores] = useState<Elevador[]>([]);
   const [fila, setFila] = useState<FilaItem[]>([]);
   const [lembretes, setLembretes] = useState<Lembrete[]>([]);
-  const [aguardando, setAguardando] = useState<Aguardando[]>([]);
   const [config, setConfig] = useState<Config>(CONFIG_PADRAO);
   const [agora, setAgora] = useState<Date | null>(null);
   const [conectado, setConectado] = useState(true);
@@ -119,17 +116,15 @@ export default function PainelPage() {
 
   // ----- Carga inicial -----
   const carregar = async () => {
-    const [e, f, l, a, c] = await Promise.all([
+    const [e, f, l, c] = await Promise.all([
       supabase.from("elevadores").select("*").order("id"),
       supabase.from("fila_alinhamento").select("*").order("ordem"),
       supabase.from("lembretes").select("*").order("created_at", { ascending: false }),
-      supabase.from("aguardando").select("*").order("created_at"),
       supabase.from("config").select("*").eq("id", 1).single(),
     ]);
     if (e.data) setElevadores(e.data as Elevador[]);
     if (f.data) setFila(f.data as FilaItem[]);
     if (l.data) setLembretes(l.data as Lembrete[]);
-    if (a.data) setAguardando(a.data as Aguardando[]);
     if (c.data) {
       const cfg = c.data as Config;
       // 1ª carga: memoriza o tv_reload real ANTES de qualquer comparação.
@@ -190,17 +185,6 @@ export default function PainelPage() {
             .select("*")
             .order("created_at", { ascending: false })
             .then(({ data }) => data && setLembretes(data as Lembrete[]));
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "aguardando" },
-        () => {
-          supabase
-            .from("aguardando")
-            .select("*")
-            .order("created_at")
-            .then(({ data }) => data && setAguardando(data as Aguardando[]));
         }
       )
       .on(
@@ -294,7 +278,7 @@ export default function PainelPage() {
       <Aniversariante />
 
       {/* Elevadores — ocupam a maior parte da tela, preenchendo o quadrado */}
-      <section className="grid min-h-0 flex-[3.3] grid-cols-4 gap-3">
+      <section className="grid min-h-0 flex-[4] grid-cols-4 gap-3">
         {slots.map((el) => (
           <ElevadorCard
             key={el.id}
@@ -306,18 +290,13 @@ export default function PainelPage() {
         ))}
       </section>
 
-      {/* Fila + Lembretes (linha 1) e Carros aguardando (linha 2) */}
-      <section className="flex min-h-0 flex-1 flex-col gap-3">
-        <div className="grid min-h-0 flex-[2.2] grid-cols-5 gap-3">
-          <div className="col-span-3 min-h-0">
-            <FilaAlinhamento itens={fila} mode="painel" />
-          </div>
-          <div className="col-span-2 min-h-0">
-            <Lembretes lembretes={lembretes} mode="painel" />
-          </div>
+      {/* Fila + Lembretes */}
+      <section className="grid min-h-0 flex-1 grid-cols-5 gap-3">
+        <div className="col-span-3 min-h-0">
+          <FilaAlinhamento itens={fila} mode="painel" />
         </div>
-        <div className="min-h-0 flex-1">
-          <AguardandoPainel itens={aguardando} />
+        <div className="col-span-2 min-h-0">
+          <Lembretes lembretes={lembretes} mode="painel" />
         </div>
       </section>
     </main>
