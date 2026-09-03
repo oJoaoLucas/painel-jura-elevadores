@@ -150,32 +150,3 @@ export type TabelaModelo = {
   ordem: number;
   created_at: string;
 };
-
-// Cache de dados de veículo por placa (tela /placa, app/api/placa)
-export type VeiculoCache = {
-  placa: string;
-  marca: string | null;
-  modelo: string | null;
-  ano: number | null;
-  versao: string | null;
-  chassi: string | null;
-  combustivel: string | null;
-  raw: unknown;
-  consultado_em: string;
-};
-
-// Cache de óleo recomendado por marca+modelo+ano+versão (tela /placa, app/api/oleo)
-export type OleoCache = {
-  id: string;
-  marca: string;
-  modelo: string;
-  ano: number;
-  versao: string;
-  cilindrada: string | null;
-  combustivel: string | null;
-  capacidade_litros: string | null;
-  produto_oleo: string | null;
-  filtro_oleo: string | null;
-  raw: unknown;
-  atualizado_em: string;
-};

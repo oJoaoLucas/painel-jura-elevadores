@@ -97,38 +97,6 @@ create table if not exists vocabulario_voz (
   created_at timestamptz not null default now()
 );
 
--- Consulta de placa (tela /placa): cache de dados de veículo por placa
--- (API Brasil). Dado de placa não muda na prática, cache é permanente.
-create table if not exists veiculos_cache (
-  placa text primary key,
-  marca text,
-  modelo text,
-  ano int,
-  versao text,
-  chassi text,
-  combustivel text,
-  raw jsonb,
-  consultado_em timestamptz not null default now()
-);
-
--- Cache de óleo recomendado por marca+modelo+ano+versão (Guia de Aplicação
--- Ipiranga/Texaco). Especificação de fabricante não muda, cache permanente.
-create table if not exists oleo_cache (
-  id uuid primary key default gen_random_uuid(),
-  marca text not null,
-  modelo text not null,
-  ano int not null,
-  versao text not null,
-  cilindrada text,
-  combustivel text,
-  capacidade_litros text,
-  produto_oleo text,
-  filtro_oleo text,
-  raw jsonb,
-  atualizado_em timestamptz not null default now(),
-  unique (marca, modelo, ano, versao)
-);
-
 -- ============================================================
 --  Índices — a tela de Relatório filtra/ordena historico por "saida".
 --  Sem índice a consulta faz varredura completa e piora conforme o
@@ -207,18 +175,6 @@ alter table vocabulario_voz enable row level security;
 create policy vocabulario_voz_select on vocabulario_voz for select to anon, authenticated using (true);
 create policy vocabulario_voz_insert on vocabulario_voz for insert to anon, authenticated with check (true);
 create policy vocabulario_voz_delete on vocabulario_voz for delete to anon, authenticated using (true);
-
--- VEICULOS_CACHE / OLEO_CACHE (tela /placa): leitura + insert + update
--- (cache é gravado pelas API routes; nunca precisa de delete manual)
-alter table veiculos_cache enable row level security;
-create policy veiculos_cache_select on veiculos_cache for select to anon, authenticated using (true);
-create policy veiculos_cache_insert on veiculos_cache for insert to anon, authenticated with check (true);
-create policy veiculos_cache_update on veiculos_cache for update to anon, authenticated using (true) with check (true);
-
-alter table oleo_cache enable row level security;
-create policy oleo_cache_select on oleo_cache for select to anon, authenticated using (true);
-create policy oleo_cache_insert on oleo_cache for insert to anon, authenticated with check (true);
-create policy oleo_cache_update on oleo_cache for update to anon, authenticated using (true) with check (true);
 
 -- ============================================================
 --  Limpeza automática dos elevadores às 19h (todo dia)
