@@ -101,6 +101,29 @@ export function progressoPrevisto(
   return { pct, fase };
 }
 
+// Formata um ISO pra "HH:MM" (hora local) — pro campo de início editável.
+export function formatarHora(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return `${d.getHours().toString().padStart(2, "0")}:${d
+    .getMinutes()
+    .toString()
+    .padStart(2, "0")}`;
+}
+
+// Recombina um ISO existente com um novo horário "HH:MM", mantendo a data
+// original (só a hora/minuto mudam quando a recepção edita o início).
+export function combinarHora(
+  baseIso: string | null,
+  hhmm: string
+): string | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm);
+  if (!m) return baseIso;
+  const base = baseIso ? new Date(baseIso) : new Date();
+  base.setHours(parseInt(m[1], 10), parseInt(m[2], 10), 0, 0);
+  return base.toISOString();
+}
+
 // Carro está ocupando há mais tempo que o limite de alerta?
 export function carroParado(
   desde: string | null,

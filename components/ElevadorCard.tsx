@@ -13,6 +13,8 @@ import {
   carroParado,
   estimativaRestante,
   progressoPrevisto,
+  formatarHora,
+  combinarHora,
 } from "@/lib/status";
 
 // Cores da barra de progresso do tempo previsto
@@ -44,6 +46,7 @@ type Props = {
       servico: string;
       mecanico: string;
       previsto_min: number | null;
+      ocupado_em?: string | null;
     }
   ) => void;
   onStatus?: (id: number, status: ElevadorStatus) => void;
@@ -298,6 +301,7 @@ function ElevadorAdminCard({
   const [mecanico, setMecanico] = useState("");
   const [previstoH, setPrevistoH] = useState("");
   const [previstoM, setPrevistoM] = useState("");
+  const [horaInicio, setHoraInicio] = useState("");
   const [sobre, setSobre] = useState(false); // arrastando um carro por cima
 
   useEffect(() => {
@@ -310,12 +314,14 @@ function ElevadorAdminCard({
     const pm = elevador.previsto_min || 0;
     setPrevistoH(Math.floor(pm / 60) ? String(Math.floor(pm / 60)) : "");
     setPrevistoM(pm % 60 ? String(pm % 60) : "");
+    setHoraInicio(formatarHora(elevador.ocupado_em));
   }, [
     elevador.placa,
     elevador.carro,
     elevador.servico,
     elevador.mecanico,
     elevador.previsto_min,
+    elevador.ocupado_em,
   ]);
 
   const toggle = (s: string) =>
@@ -336,6 +342,9 @@ function ElevadorAdminCard({
       servico: montarServico(selecionados, extra),
       mecanico,
       previsto_min: total > 0 ? total : null,
+      // só reenvia o início editado quando o carro já estava no elevador;
+      // pra um carro novo o horário é sempre "agora" (ver ocuparElevador)
+      ocupado_em: livre ? null : combinarHora(elevador.ocupado_em, horaInicio),
     });
   };
 
@@ -433,7 +442,7 @@ function ElevadorAdminCard({
 
       {!livre && tempo && (
         <p
-          className="mb-2 flex flex-wrap items-center gap-1 font-mono text-sm font-bold"
+          className="mb-1 flex flex-wrap items-center gap-1 font-mono text-sm font-bold"
           style={{
             color: pausado
               ? COR_PAUSA
@@ -451,6 +460,19 @@ function ElevadorAdminCard({
                 ? ` · ${restante.texto}`
                 : ""}
         </p>
+      )}
+
+      {!livre && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <label className="text-sm text-jura-muted">Início</label>
+          <input
+            type="time"
+            value={horaInicio}
+            onChange={(e) => setHoraInicio(e.target.value)}
+            title="Horário em que o carro entrou — editar recalcula o tempo decorrido"
+            className="w-28 rounded-lg border border-jura-border bg-jura-input px-2 py-1.5 text-center font-mono text-sm outline-none focus:border-jura-red"
+          />
+        </div>
       )}
 
       {/* Barra de progresso do tempo previsto */}

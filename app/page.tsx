@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import IconeJura, { type NomeIcone } from "@/components/IconeJura";
-import { IconChart, IconScreen, IconSettings } from "@/components/Icon";
+import { IconCar, IconChart, IconScreen, IconSettings } from "@/components/Icon";
 
 type Atalho = {
   href: string;
@@ -26,6 +26,13 @@ const ATALHOS: Atalho[] = [
     desc: "Orçamento de pneus pro WhatsApp",
     cor: "#25D366",
     png: "whatsapp",
+  },
+  {
+    href: "/placa",
+    titulo: "Consultar Placa",
+    desc: "Dados do veículo e óleo recomendado",
+    cor: "#22d3ee",
+    Svg: IconCar,
   },
   {
     href: "/precos",

@@ -139,6 +139,7 @@ export default function AdminPage() {
       servico: string;
       mecanico: string;
       previsto_min: number | null;
+      ocupado_em?: string | null;
     }
   ) => {
     const atual = elevadores.find((e) => e.id === id);
@@ -153,8 +154,11 @@ export default function AdminPage() {
           servico: dados.servico || null,
           mecanico: dados.mecanico || null,
           previsto_min: dados.previsto_min,
-          // só reseta o cronômetro quando o carro ENTRA (estava livre)
-          ocupado_em: eraLivre ? new Date().toISOString() : atual?.ocupado_em,
+          // reseta pro agora quando o carro ENTRA (estava livre); se já
+          // estava ocupado, usa o início editado na recepção (ou mantém)
+          ocupado_em: eraLivre
+            ? new Date().toISOString()
+            : dados.ocupado_em ?? atual?.ocupado_em,
           pausado_em: eraLivre ? null : atual?.pausado_em,
           updated_at: new Date().toISOString(),
         })
