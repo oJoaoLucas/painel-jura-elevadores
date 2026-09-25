@@ -104,11 +104,8 @@ export default function Lembretes({
   };
 
   return (
-    <div
-      className="rounded-lg border border-jura-border bg-jura-card p-4"
-      style={{ borderLeft: "5px solid #cc8800" }}
-    >
-      <h2 className="section-title mb-4 text-lg">Lembretes — Recepção</h2>
+    <div className="rounded-xl bg-jura-panel p-5 shadow-card">
+      <h2 className="section-title mb-4 text-lg">Lembretes</h2>
 
       <div className="mb-4 space-y-2">
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -153,7 +150,7 @@ export default function Lembretes({
       </div>
 
       {ordenados.length === 0 ? (
-        <p className="text-white/40">Nenhum lembrete.</p>
+        <p className="text-jura-muted">Nenhum lembrete.</p>
       ) : (
         <ul className="space-y-2">
           {ordenados.map((l) => {
@@ -161,10 +158,15 @@ export default function Lembretes({
             return (
               <li
                 key={l.id}
-                className="flex items-start gap-2 rounded border bg-black/30 px-3 py-2"
-                style={{ borderColor: urgente ? "#cc0000" : "#222222" }}
+                className={`flex items-start gap-2 rounded border bg-black/30 px-3 py-2 ${
+                  urgente ? "border-jura-red" : "border-jura-border"
+                }`}
               >
-                <span>{urgente ? "⚠️" : "📢"}</span>
+                {urgente ? (
+                  <IconAlert className="mt-0.5 h-4 w-4 shrink-0 text-jura-red" />
+                ) : (
+                  <IconMegaphone className="mt-0.5 h-4 w-4 shrink-0 text-jura-amber" />
+                )}
                 <span className="flex-1">
                   {l.destinatario && (
                     <span className="font-bold text-jura-amber">
@@ -186,6 +188,7 @@ export default function Lembretes({
                   }}
                   className="rounded border border-jura-red px-2 py-0.5 text-sm text-jura-red transition-colors hover:bg-jura-red hover:text-white"
                   title="Remover"
+                  aria-label="Remover lembrete"
                 >
                   ✕
                 </button>

@@ -163,16 +163,13 @@ export default function ComandoVoz({
     "w-full rounded-lg border border-jura-border bg-jura-input px-3 py-2.5 text-base outline-none focus:border-jura-red";
 
   return (
-    <section className="rounded-xl border border-jura-border bg-jura-card p-3 shadow-card sm:p-4">
-      <div className="mb-2.5 flex items-center gap-2">
-        <IconMic className="h-5 w-5 shrink-0 text-jura-red" />
-        <h2 className="font-display text-lg font-extrabold uppercase tracking-wider sm:text-xl">
+    <section className="rounded-xl border border-jura-border bg-jura-panel p-2.5">
+      {/* Barra única: título curto + campo + botões na mesma linha no desktop */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <h2 className="flex shrink-0 items-center gap-1.5 px-1 font-title text-xl leading-none tracking-wide text-jura-muted">
+          <IconMic className="h-4 w-4 shrink-0 text-jura-red" />
           Comando por voz
         </h2>
-      </div>
-
-      {/* Campo + microfone: empilha no celular, lado a lado no desktop */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
         <textarea
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
@@ -182,22 +179,22 @@ export default function ComandoVoz({
               analisar();
             }
           }}
-          rows={2}
+          rows={1}
           placeholder={
             temVoz
               ? "Toque no microfone e fale, ou digite aqui"
               : "Use o microfone do teclado do celular pra ditar aqui"
           }
           // text-base (16px) evita o zoom automático do iPhone ao focar
-          className={`${inputCls} min-h-[64px] resize-none sm:flex-1`}
+          className={`${inputCls} min-h-[48px] resize-none sm:flex-1`}
         />
 
-        <div className="flex gap-2 sm:flex-col">
+        <div className="flex gap-2">
           {temVoz && (
             <button
               onClick={ouvir}
               aria-label={ouvindo ? "Parar de ouvir" : "Falar comando"}
-              className={`flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-lg px-4 text-base font-bold uppercase tracking-wide text-white transition-opacity sm:w-32 sm:flex-none ${
+              className={`flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-lg px-4 text-base font-bold uppercase tracking-wide text-white transition-opacity sm:w-32 sm:flex-none ${
                 ouvindo ? "bg-jura-red pulsa-alerta" : "bg-jura-red hover:opacity-90"
               }`}
             >
@@ -208,7 +205,7 @@ export default function ComandoVoz({
           <button
             onClick={analisar}
             disabled={!texto.trim() || pensando}
-            className="min-h-[52px] flex-1 rounded-lg border border-jura-green px-4 text-base font-bold uppercase tracking-wide text-jura-green transition-colors hover:bg-jura-green hover:text-white disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-jura-green sm:w-32 sm:flex-none"
+            className="min-h-[48px] flex-1 rounded-lg border border-jura-green px-4 text-base font-bold tracking-wide text-jura-green transition-colors hover:bg-jura-green hover:text-white disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-jura-green sm:w-32 sm:flex-none"
           >
             {pensando ? "..." : "Entender"}
           </button>
@@ -233,7 +230,7 @@ export default function ComandoVoz({
       {comando && comando.acao !== "nada" && (
         <div className="mt-3 rounded-lg border-2 border-jura-green bg-jura-panel p-3">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="font-display text-base font-extrabold uppercase tracking-wide text-jura-green sm:text-lg">
+            <p className="font-title text-xl leading-tight tracking-wide text-jura-green sm:text-2xl">
               {descrever(comando)}
             </p>
             {fonte === "local" && (

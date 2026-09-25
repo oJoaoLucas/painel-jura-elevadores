@@ -30,6 +30,8 @@ import {
   IconPause,
   IconJuraLift,
   IconEngineAlert,
+  IconGrip,
+  IconUndo,
 } from "@/components/Icon";
 import { useDialog } from "@/components/Dialog";
 
@@ -404,7 +406,7 @@ function ElevadorAdminCard({
             }
           : undefined
       }
-      className={`flex min-w-0 flex-col rounded-xl border-2 p-3 shadow-card sm:p-4 ${
+      className={`flex min-w-0 flex-col rounded-xl border-2 p-3 shadow-card transition-colors duration-300 motion-reduce:transition-none sm:p-4 ${
         alerta ? "pulsa-alerta" : ""
       } ${livre && sobre ? "ring-2 ring-jura-green" : ""}`}
       style={{
@@ -423,15 +425,15 @@ function ElevadorAdminCard({
               className="shrink-0 cursor-grab select-none text-jura-muted hover:text-jura-ink active:cursor-grabbing"
               title="Arraste pra fila de alinhamento"
             >
-              ⠿
+              <IconGrip className="h-5 w-5" />
             </span>
           )}
-          <span className="truncate font-display text-xl font-extrabold uppercase tracking-wider">
+          <span className="truncate font-title text-2xl leading-none tracking-wide">
             Elevador {elevador.id}
           </span>
         </span>
         <span
-          className="shrink-0 whitespace-nowrap rounded-md px-2.5 py-0.5 text-xs font-bold uppercase text-white"
+          className="shrink-0 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-bold uppercase text-white"
           style={{
             backgroundColor: pausado ? COR_PAUSA : alerta ? COR_ALERTA : meta.cor,
           }}
@@ -440,38 +442,37 @@ function ElevadorAdminCard({
         </span>
       </div>
 
-      {!livre && tempo && (
-        <p
-          className="mb-1 flex flex-wrap items-center gap-1 font-mono text-sm font-bold"
-          style={{
-            color: pausado
-              ? COR_PAUSA
-              : alerta
-                ? COR_ALERTA
-                : "rgba(255,255,255,0.5)",
-          }}
-        >
-          ⏱ {tempo} no elevador
-          {pausado
-            ? " — tempo pausado"
-            : alerta
-              ? " — carro muito tempo no elevador!"
-              : restante
-                ? ` · ${restante.texto}`
-                : ""}
-        </p>
-      )}
-
+      {/* Tempo no elevador + horário de início (editável) na mesma linha */}
       {!livre && (
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <label className="text-sm text-jura-muted">Início</label>
-          <input
-            type="time"
-            value={horaInicio}
-            onChange={(e) => setHoraInicio(e.target.value)}
-            title="Horário em que o carro entrou — editar recalcula o tempo decorrido"
-            className="w-28 rounded-lg border border-jura-border bg-jura-input px-2 py-1.5 text-center font-mono text-sm outline-none focus:border-jura-red"
-          />
+        <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          {tempo && (
+            <p
+              className="flex min-w-0 flex-wrap items-center gap-1 font-mono text-sm font-bold"
+              style={{
+                color: pausado ? COR_PAUSA : alerta ? COR_ALERTA_TEXTO : "#9aa3ad",
+              }}
+            >
+              <IconClock className="h-4 w-4 shrink-0" />
+              {tempo} no elevador
+              {pausado
+                ? " · tempo pausado"
+                : alerta
+                  ? " · passou do limite"
+                  : restante
+                    ? ` · ${restante.texto}`
+                    : ""}
+            </p>
+          )}
+          <label className="ml-auto flex items-center gap-1.5 text-sm text-jura-muted">
+            desde
+            <input
+              type="time"
+              value={horaInicio}
+              onChange={(e) => setHoraInicio(e.target.value)}
+              title="Horário em que o carro entrou. Editar e salvar recalcula o tempo."
+              className="w-[6.5rem] rounded-lg border border-jura-border bg-jura-input px-2 py-1 text-center font-mono text-sm text-jura-ink outline-none focus:border-jura-red"
+            />
+          </label>
         </div>
       )}
 
@@ -535,53 +536,39 @@ function ElevadorAdminCard({
         </div>
       </div>
 
-      {/* Ações (só quando já ocupado) */}
+      {/* Status (Ocupado / Pronto) separado das ações */}
       {!livre && (
-        <div className="mt-3 flex gap-2">
-          {/* Ocupado (status) */}
-          <button
-            onClick={() => handleStatus("ocupado")}
-            className="min-w-0 flex-1 truncate rounded-md border px-1 py-1 text-xs font-bold uppercase transition-colors"
-            style={{
-              borderColor: STATUS_META.ocupado.cor,
-              backgroundColor:
-                elevador.status === "ocupado"
-                  ? STATUS_META.ocupado.cor
-                  : "transparent",
-              color:
-                elevador.status === "ocupado" ? "#fff" : STATUS_META.ocupado.cor,
-            }}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div
+            role="group"
+            aria-label="Status do elevador"
+            className="flex rounded-lg border border-jura-border bg-black/30 p-0.5"
           >
-            Ocupado
-          </button>
-
-          {/* Aguardando (ação: volta pra fila de Carros aguardando) */}
+            {(["ocupado", "pronto"] as const).map((s) => {
+              const ativo = elevador.status === s;
+              return (
+                <button
+                  key={s}
+                  onClick={() => handleStatus(s)}
+                  aria-pressed={ativo}
+                  className="rounded-md px-3 py-1 text-sm font-semibold transition-colors"
+                  style={{
+                    backgroundColor: ativo ? STATUS_META[s].cor : "transparent",
+                    color: ativo ? "#fff" : STATUS_META[s].cor,
+                  }}
+                >
+                  {STATUS_META[s].label}
+                </button>
+              );
+            })}
+          </div>
           <button
             onClick={handleAguardando}
-            className="min-w-0 flex-1 truncate rounded-md border px-1 py-1 text-xs font-bold uppercase transition-colors hover:bg-jura-blue hover:text-white"
-            style={{
-              borderColor: STATUS_META.aguardando.cor,
-              color: STATUS_META.aguardando.cor,
-            }}
+            className="ml-auto flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-semibold text-jura-muted transition-colors hover:bg-white/5 hover:text-jura-ink"
+            title="Tira o carro do elevador e manda de volta pra Carros aguardando"
           >
-            Aguardando
-          </button>
-
-          {/* Pronto (status) */}
-          <button
-            onClick={() => handleStatus("pronto")}
-            className="min-w-0 flex-1 truncate rounded-md border px-1 py-1 text-xs font-bold uppercase transition-colors"
-            style={{
-              borderColor: STATUS_META.pronto.cor,
-              backgroundColor:
-                elevador.status === "pronto"
-                  ? STATUS_META.pronto.cor
-                  : "transparent",
-              color:
-                elevador.status === "pronto" ? "#fff" : STATUS_META.pronto.cor,
-            }}
-          >
-            Pronto
+            <IconUndo className="h-4 w-4" />
+            Voltar pra espera
           </button>
         </div>
       )}
@@ -589,14 +576,14 @@ function ElevadorAdminCard({
       <div className="mt-3 flex gap-2">
         <button
           onClick={handleOcupar}
-          className="min-w-0 flex-1 truncate rounded-md bg-jura-red px-2 py-1.5 text-sm font-bold uppercase tracking-wide text-white transition-opacity hover:opacity-90 sm:px-3"
+          className="min-w-0 flex-[1.4] truncate rounded-lg bg-jura-red px-3 py-2 text-sm font-bold uppercase tracking-wide text-white hover:opacity-90"
         >
           {livre ? "Ocupar" : "Salvar"}
         </button>
         {!livre && (
           <button
             onClick={() => onPausar?.(elevador.id, !pausado)}
-            className="min-w-0 flex-1 truncate rounded-md border px-2 py-1.5 text-sm font-bold uppercase tracking-wide transition-colors sm:px-3"
+            className="min-w-0 flex-1 truncate rounded-lg border px-2 py-2 text-sm font-semibold sm:px-3"
             style={{
               borderColor: COR_PAUSA,
               backgroundColor: pausado ? COR_PAUSA : "transparent",
@@ -614,7 +601,7 @@ function ElevadorAdminCard({
         {!livre && (
           <button
             onClick={handleLiberar}
-            className="min-w-0 flex-1 truncate rounded-md border border-jura-green px-2 py-1.5 text-sm font-bold uppercase tracking-wide text-jura-green transition-colors hover:bg-jura-green hover:text-white sm:px-3"
+            className="min-w-0 flex-1 truncate rounded-lg border border-jura-green px-2 py-2 text-sm font-semibold text-jura-green hover:bg-jura-green hover:text-white sm:px-3"
           >
             Liberar
           </button>

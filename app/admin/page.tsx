@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   supabase,
   CONFIG_PADRAO,
@@ -25,6 +25,7 @@ import type { Comando } from "@/lib/voz-comando";
 import NavMenu from "@/components/NavMenu";
 import AuthGate from "@/components/AuthGate";
 import { useDialog } from "@/components/Dialog";
+import { IconCheck } from "@/components/Icon";
 
 export default function AdminPage() {
   const [elevadores, setElevadores] = useState<Elevador[]>([]);
@@ -35,6 +36,15 @@ export default function AdminPage() {
   const [config, setConfig] = useState<Config>(CONFIG_PADRAO);
   const [agora, setAgora] = useState(new Date());
   const { avisar } = useDialog();
+  const [aviso, setAviso] = useState<string | null>(null);
+  const avisoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [aba, setAba] = useState<"espera" | "fila" | "recados" | "mais">("espera");
+
+  const mostrarAviso = (texto: string) => {
+    setAviso(texto);
+    if (avisoTimer.current) clearTimeout(avisoTimer.current);
+    avisoTimer.current = setTimeout(() => setAviso(null), 2200);
+  };
 
   // Roda uma gravação no banco e avisa a recepção se falhar (internet/servidor),
   // em vez de falhar em silêncio e dar impressão de que salvou.
@@ -164,7 +174,10 @@ export default function AdminPage() {
         })
         .eq("id", id)
     );
-    if (ok) recarregarElevadores();
+    if (ok) {
+      recarregarElevadores();
+      mostrarAviso(eraLivre ? `Elevador ${id} ocupado` : `Elevador ${id} salvo`);
+    }
   };
 
   const mudarStatus = async (id: number, status: ElevadorStatus) => {
@@ -513,23 +526,22 @@ export default function AdminPage() {
 
   return (
     <AuthGate>
-    <main className="gestao space-y-6 px-4 pb-12 sm:px-6">
-      <NavMenu titulo="Recepção" />
+    <main className="gestao space-y-5 px-4 pb-12 sm:px-6">
+      <NavMenu
+        titulo="Recepção"
+        acoes={<AtualizarTV onSalvar={atualizarConfig} />}
+      />
 
-      <div className="flex justify-end">
-        <AtualizarTV onSalvar={atualizarConfig} />
-      </div>
-
-      {/* Entrada por voz — evita digitar tudo no celular */}
+      {/* Entrada por voz: barra fina logo acima dos elevadores */}
       <ComandoVoz
         elevadores={slots}
         elevadoresLivres={elevadoresLivres}
         onExecutar={executarComando}
       />
 
-      {/* 1. Elevadores (esquerda) + Carros aguardando (bloco à direita) */}
+      {/* Elevadores (esquerda) + Carros aguardando (bloco à direita) */}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <section>
+        <section aria-label="Elevadores">
           <div className="grid gap-4 sm:grid-cols-2">
             {slots.map((el) => (
               <ElevadorCard
@@ -553,45 +565,90 @@ export default function AdminPage() {
           </div>
         </section>
 
-        {/* Carros aguardando — bloco lateral */}
-        <Aguardando
-          itens={aguardando}
-          elevadoresLivres={elevadoresLivres}
-          onAdd={adicionarAguardando}
-          onRemove={removerAguardando}
-          onMover={moverParaElevador}
-          onMoverAlinhamento={aguardandoParaAlinhamento}
-          vertical
-        />
+        {/* No celular: abas pra não empilhar tudo numa página enorme */}
+        <nav
+          aria-label="Seções da recepção"
+          className="sticky top-0 z-30 -mx-4 flex gap-1 border-y border-jura-border bg-jura-bg/95 px-4 py-2 backdrop-blur md:hidden"
+        >
+          {(
+            [
+              ["espera", `Espera${aguardando.length ? ` (${aguardando.length})` : ""}`],
+              ["fila", `Fila${fila.length ? ` (${fila.length})` : ""}`],
+              ["recados", `Recados${lembretes.length ? ` (${lembretes.length})` : ""}`],
+              ["mais", "Mais"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => setAba(id)}
+              aria-pressed={aba === id}
+              className={`flex-1 whitespace-nowrap rounded-md px-1 py-2 text-[13px] font-semibold ${
+                aba === id
+                  ? "bg-jura-red text-white"
+                  : "text-jura-muted hover:text-jura-ink"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        <div className={`${aba === "espera" ? "" : "hidden"} md:block`}>
+          <Aguardando
+            itens={aguardando}
+            elevadoresLivres={elevadoresLivres}
+            onAdd={adicionarAguardando}
+            onRemove={removerAguardando}
+            onMover={moverParaElevador}
+            onMoverAlinhamento={aguardandoParaAlinhamento}
+            vertical
+          />
+        </div>
       </div>
 
-      {/* Fila + Lembretes: empilhados na vertical, lado a lado só em tela larga */}
+      {/* Fila + Lembretes: lado a lado só em tela larga */}
       <div className="grid gap-6 xl:grid-cols-2">
-        <FilaAlinhamento
-          itens={fila}
-          mode="admin"
-          onAdd={adicionarFila}
-          onRemove={removerFila}
-          onMove={moverFila}
-          onSoltarAguardando={(aguardandoId) => {
-            const item = aguardando.find((a) => a.id === aguardandoId);
-            if (item) aguardandoParaAlinhamento(item);
-          }}
-          onSoltarElevador={(elevId) => moverParaAlinhamento(elevId)}
-        />
-        <Lembretes
-          lembretes={lembretes}
-          mode="admin"
-          onAdd={adicionarLembrete}
-          onRemove={removerLembrete}
-        />
+        <div className={`${aba === "fila" ? "" : "hidden"} md:block`}>
+          <FilaAlinhamento
+            itens={fila}
+            mode="admin"
+            onAdd={adicionarFila}
+            onRemove={removerFila}
+            onMove={moverFila}
+            onSoltarAguardando={(aguardandoId) => {
+              const item = aguardando.find((a) => a.id === aguardandoId);
+              if (item) aguardandoParaAlinhamento(item);
+            }}
+            onSoltarElevador={(elevId) => moverParaAlinhamento(elevId)}
+          />
+        </div>
+        <div className={`${aba === "recados" ? "" : "hidden"} md:block`}>
+          <Lembretes
+            lembretes={lembretes}
+            mode="admin"
+            onAdd={adicionarLembrete}
+            onRemove={removerLembrete}
+          />
+        </div>
       </div>
 
-      {/* Carros que voltaram + Rádio da TV: lado a lado em tela larga */}
-      <div className="grid gap-6 xl:grid-cols-2">
+      {/* Menos usados: carros que voltaram + rádio da TV */}
+      <div
+        className={`${aba === "mais" ? "grid" : "hidden"} gap-6 md:grid xl:grid-cols-2`}
+      >
         <Retornos itens={retornos} onAdd={adicionarRetorno} />
         <RadioControle config={config} onSalvar={atualizarConfig} />
       </div>
+
+      {aviso && (
+        <div
+          role="status"
+          className="aviso-rapido fixed bottom-5 left-1/2 z-50 flex items-center gap-2 rounded-full border border-jura-green/50 bg-jura-card px-4 py-2 text-sm font-semibold text-jura-ink shadow-card"
+        >
+          <IconCheck className="h-4 w-4 text-jura-green" />
+          {aviso}
+        </div>
+      )}
     </main>
     </AuthGate>
   );

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Logo from "@/components/Logo";
 import { logout, estaLogado, ouvirAuth } from "@/lib/auth";
 import { IconLogout } from "@/components/Icon";
@@ -17,7 +17,13 @@ const LINKS: { href: string; label: string }[] = [
   { href: "/painel", label: "TV" },
 ];
 
-export default function NavMenu({ titulo }: { titulo?: string }) {
+export default function NavMenu({
+  titulo,
+  acoes,
+}: {
+  titulo?: string;
+  acoes?: ReactNode;
+}) {
   const pathname = usePathname();
   const [logado, setLogado] = useState(false);
 
@@ -48,22 +54,24 @@ export default function NavMenu({ titulo }: { titulo?: string }) {
             <Link
               key={href}
               href={href}
-              className="font-btn rounded-md border px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-jura-red/60"
-              style={{
-                borderColor: ativo ? "#C8102E" : "#353c46",
-                backgroundColor: ativo ? "#C8102E" : "transparent",
-                color: ativo ? "#fff" : "rgba(255,255,255,0.72)",
-              }}
+              aria-current={ativo ? "page" : undefined}
+              className={`font-btn rounded-md border px-3 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-jura-red/60 ${
+                ativo
+                  ? "border-jura-red bg-jura-red text-white"
+                  : "border-jura-border text-white/75 hover:border-jura-line hover:text-white"
+              }`}
             >
               {label}
             </Link>
           );
         })}
 
+        {acoes && <span className="ml-1 flex items-center">{acoes}</span>}
+
         {logado && (
           <button
             onClick={logout}
-            className="font-btn ml-1 flex items-center gap-1.5 rounded-md border border-jura-border px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-jura-muted transition-colors hover:border-jura-red hover:text-jura-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-jura-red/60"
+            className="font-btn ml-1 flex items-center gap-1.5 rounded-md border border-jura-border px-3 py-1.5 text-sm font-semibold text-jura-muted transition-colors hover:border-jura-red hover:text-jura-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-jura-red/60"
             title="Sair"
           >
             <IconLogout className="h-4 w-4" />

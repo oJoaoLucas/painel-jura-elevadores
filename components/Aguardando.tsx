@@ -69,7 +69,7 @@ export default function Aguardando({
   return (
     <section className="h-full min-w-0 rounded-xl bg-jura-panel p-5 shadow-card">
       <h2 className="section-title mb-1 text-lg">Carros aguardando</h2>
-      <p className="mb-4 text-sm text-white/40">
+      <p className="mb-4 text-sm text-jura-muted">
         Cadastre quem chegou e depois jogue no elevador livre com um clique.
       </p>
 
@@ -110,7 +110,7 @@ export default function Aguardando({
 
       {/* Blocos de carros aguardando */}
       {itens.length === 0 ? (
-        <p className="text-white/40">Nenhum carro aguardando.</p>
+        <p className="text-jura-muted">Nenhum carro aguardando.</p>
       ) : (
         <div
           className={`grid gap-2 ${
@@ -128,7 +128,7 @@ export default function Aguardando({
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold leading-tight">
-                    {item.carro || "—"}
+                    {item.carro || "Sem modelo"}
                     {item.placa && (
                       <span className="ml-1.5 font-mono text-xs font-normal uppercase text-white/50">
                         {item.placa}
@@ -154,6 +154,7 @@ export default function Aguardando({
                   }}
                   className="shrink-0 rounded border border-jura-red px-1.5 text-xs text-jura-red transition-colors hover:bg-jura-red hover:text-white"
                   title="Remover"
+                  aria-label={`Remover ${item.carro || item.placa} da espera`}
                 >
                   ✕
                 </button>
@@ -167,14 +168,14 @@ export default function Aguardando({
                     onClick={() => onMover(item, id)}
                     className="rounded border border-jura-green px-1.5 py-0.5 text-xs font-bold text-jura-green transition-colors hover:bg-jura-green hover:text-white"
                   >
-                    → {id}
+                    Elev. {id}
                   </button>
                 ))}
                 <button
                   onClick={() => onMoverAlinhamento(item)}
                   className="rounded border border-jura-blue px-1.5 py-0.5 text-xs font-bold text-jura-blue transition-colors hover:bg-jura-blue hover:text-white"
                 >
-                  → Alinh
+                  Alinhamento
                 </button>
               </div>
             </div>

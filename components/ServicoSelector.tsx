@@ -44,10 +44,11 @@ export default function ServicoSelector({
               key={s}
               type="button"
               onClick={() => onToggle(s)}
-              className={`font-btn flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold uppercase tracking-wide transition-colors ${
+              aria-pressed={ativo}
+              className={`font-btn flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold transition-colors ${
                 ativo
                   ? "border-jura-red bg-jura-red text-white"
-                  : "border-jura-border bg-jura-input text-white/70 hover:border-jura-red/60"
+                  : "border-jura-border bg-jura-input text-white/80 hover:border-jura-red/60"
               }`}
             >
               {icone && (

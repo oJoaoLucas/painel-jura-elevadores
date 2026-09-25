@@ -121,12 +121,11 @@ export default function FilaAlinhamento({
         if (p?.tipo === "aguardando") onSoltarAguardando?.(p.id);
         else if (p?.tipo === "elevador") onSoltarElevador?.(p.id);
       }}
-      className={`rounded-lg border bg-jura-card p-4 transition-shadow ${
-        sobre ? "border-jura-amber ring-2 ring-jura-amber" : "border-jura-border"
+      className={`rounded-xl border bg-jura-panel p-5 shadow-card transition-shadow ${
+        sobre ? "border-jura-amber ring-2 ring-jura-amber" : "border-transparent"
       }`}
-      style={{ borderLeft: "5px solid #cc0000" }}
     >
-      <h2 className="section-title mb-1 text-lg">Fila — Alinhamento</h2>
+      <h2 className="section-title mb-1 text-lg">Fila de alinhamento</h2>
       <p className="mb-4 text-xs text-jura-muted">
         Arraste um carro aguardando ou de um elevador pra cá.
       </p>
@@ -154,7 +153,7 @@ export default function FilaAlinhamento({
       </div>
 
       {ordenados.length === 0 ? (
-        <p className="text-white/40">Nenhum carro na fila.</p>
+        <p className="text-jura-muted">Nenhum carro na fila.</p>
       ) : (
         <ul className="space-y-2">
           {ordenados.map((item, i) => (
@@ -202,6 +201,7 @@ export default function FilaAlinhamento({
                   }}
                   className="rounded border border-jura-red px-2 py-1 text-sm text-jura-red transition-colors hover:bg-jura-red hover:text-white"
                   title="Remover"
+                  aria-label={`Remover ${item.carro || item.placa} da fila`}
                 >
                   ✕
                 </button>

@@ -45,6 +45,25 @@ export function IconEngineAlert({ className = "h-4 w-4" }: Props) {
   );
 }
 
+// Alça de arrastar (6 pontos).
+export function IconGrip({ className = "h-4 w-4" }: Props) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" strokeWidth={3} />
+    </svg>
+  );
+}
+
+// Seta de retorno (mandar de volta pra espera).
+export function IconUndo({ className = "h-4 w-4" }: Props) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M9 14 4 9l5-5" />
+      <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+    </svg>
+  );
+}
+
 export function IconClock({ className = "h-4 w-4" }: Props) {
   return (
     <svg {...base} className={className}>

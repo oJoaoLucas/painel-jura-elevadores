@@ -120,7 +120,11 @@ export function combinarHora(
   const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm);
   if (!m) return baseIso;
   const base = baseIso ? new Date(baseIso) : new Date();
-  base.setHours(parseInt(m[1], 10), parseInt(m[2], 10), 0, 0);
+  const h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  // Hora não mudou: devolve o original (não zera os segundos a cada Salvar)
+  if (baseIso && base.getHours() === h && base.getMinutes() === min) return baseIso;
+  base.setHours(h, min, 0, 0);
   return base.toISOString();
 }
 

@@ -22,7 +22,7 @@ export default function AtualizarTV({
   return (
     <button
       onClick={atualizar}
-      className="flex items-center gap-2 rounded-md border border-jura-border px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-jura-muted transition-colors hover:border-jura-red hover:text-jura-red"
+      className="font-btn flex items-center gap-1.5 rounded-md border border-jura-border px-3 py-1.5 text-sm font-semibold text-jura-muted transition-colors hover:border-jura-red hover:text-jura-ink"
       title="Faz a TV lá no fundo recarregar a versão mais nova"
     >
       <IconScreen className="h-4 w-4" />

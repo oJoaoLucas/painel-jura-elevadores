@@ -63,7 +63,7 @@ export default function Retornos({ itens, onAdd }: Props) {
         <h2 className="section-title text-lg">Carros que voltaram</h2>
         <Link
           href="/relatorio?aba=retorno"
-          className="font-btn flex items-center gap-1.5 rounded-md border border-jura-border px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-jura-muted transition-colors hover:border-jura-red hover:text-jura-red"
+          className="font-btn flex items-center gap-1.5 rounded-md border border-jura-border px-3 py-1.5 text-sm font-semibold text-jura-muted transition-colors hover:border-jura-red hover:text-jura-red"
         >
           <IconChart className="h-4 w-4" />
           Consultar
