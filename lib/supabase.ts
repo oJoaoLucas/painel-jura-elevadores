@@ -71,16 +71,6 @@ export type Aguardando = {
   created_at: string;
 };
 
-// Carro que voltou na oficina (re-serviço)
-export type Retorno = {
-  id: string;
-  placa: string | null;
-  carro: string | null;
-  data: string; // "YYYY-MM-DD"
-  descricao: string | null;
-  created_at: string;
-};
-
 export type Historico = {
   id: string;
   elevador_id: number | null;
@@ -98,9 +88,6 @@ export type Config = {
   volume: number;
   pin: string;
   alerta_horas: number;
-  radio_ativa: boolean; // rádio da TV ligada/desligada (controle pela recepção)
-  radio_estacao: number; // índice da estação em lib/radio.ts
-  radio_volume: number; // volume da rádio (separado do volume dos beeps)
   tv_reload: number; // "sinal" pra TV recarregar (recepção bumpa; TV observa)
 };
 
@@ -110,9 +97,6 @@ export const CONFIG_PADRAO: Config = {
   volume: 0.3,
   pin: "",
   alerta_horas: 3,
-  radio_ativa: false,
-  radio_estacao: 0,
-  radio_volume: 0.4,
   tv_reload: 0,
 };
 

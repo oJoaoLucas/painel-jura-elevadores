@@ -9,7 +9,6 @@ import {
   type FilaItem,
   type Lembrete,
   type Config,
-  type Retorno,
   type Aguardando as AguardandoItem,
 } from "@/lib/supabase";
 import { slotsElevador } from "@/lib/status";
@@ -17,8 +16,6 @@ import ElevadorCard from "@/components/ElevadorCard";
 import FilaAlinhamento from "@/components/FilaAlinhamento";
 import Lembretes from "@/components/Lembretes";
 import Aguardando from "@/components/Aguardando";
-import Retornos from "@/components/Retornos";
-import RadioControle from "@/components/RadioControle";
 import AtualizarTV from "@/components/AtualizarTV";
 import ComandoVoz from "@/components/ComandoVoz";
 import type { Comando } from "@/lib/voz-comando";
@@ -32,13 +29,12 @@ export default function AdminPage() {
   const [fila, setFila] = useState<FilaItem[]>([]);
   const [lembretes, setLembretes] = useState<Lembrete[]>([]);
   const [aguardando, setAguardando] = useState<AguardandoItem[]>([]);
-  const [retornos, setRetornos] = useState<Retorno[]>([]);
   const [config, setConfig] = useState<Config>(CONFIG_PADRAO);
   const [agora, setAgora] = useState(new Date());
   const { avisar } = useDialog();
   const [aviso, setAviso] = useState<string | null>(null);
   const avisoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [aba, setAba] = useState<"espera" | "fila" | "recados" | "mais">("espera");
+  const [aba, setAba] = useState<"espera" | "fila" | "recados">("espera");
 
   const mostrarAviso = (texto: string) => {
     setAviso(texto);
@@ -96,14 +92,6 @@ export default function AdminPage() {
       .order("created_at")
       .then(({ data }) => data && setAguardando(data as AguardandoItem[]));
 
-  const recarregarRetornos = () =>
-    supabase
-      .from("retornos")
-      .select("*")
-      .order("data", { ascending: false })
-      .order("created_at", { ascending: false })
-      .then(({ data }) => data && setRetornos(data as Retorno[]));
-
   // Atualiza a config na hora (otimista) e grava; se falhar, reverte e avisa.
   const atualizarConfig = async (patch: Partial<Config>) => {
     setConfig((c) => ({ ...c, ...patch }));
@@ -123,7 +111,6 @@ export default function AdminPage() {
     recarregarLembretes();
     recarregarConfig();
     recarregarAguardando();
-    recarregarRetornos();
 
     const channel = supabase
       .channel("admin-jura")
@@ -132,7 +119,6 @@ export default function AdminPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "lembretes" }, recarregarLembretes)
       .on("postgres_changes", { event: "*", schema: "public", table: "config" }, recarregarConfig)
       .on("postgres_changes", { event: "*", schema: "public", table: "aguardando" }, recarregarAguardando)
-      .on("postgres_changes", { event: "*", schema: "public", table: "retornos" }, recarregarRetornos)
       .subscribe();
 
     return () => {
@@ -410,24 +396,6 @@ export default function AdminPage() {
     recarregarLembretes();
   };
 
-  // ----- Carros que voltaram (re-serviço) -----
-  const adicionarRetorno = async (dados: {
-    placa: string;
-    carro: string;
-    data: string;
-    descricao: string;
-  }) => {
-    const ok = await gravar(
-      supabase.from("retornos").insert({
-        placa: dados.placa || null,
-        carro: dados.carro || null,
-        data: dados.data,
-        descricao: dados.descricao || null,
-      })
-    );
-    if (ok) recarregarRetornos();
-  };
-
   // ----- Comando por voz -----
   // O componente já mostrou o que entendeu e a recepção confirmou; aqui só
   // despachamos pra mesma função que os botões da tela usam.
@@ -567,7 +535,6 @@ export default function AdminPage() {
             ["espera", `Espera${aguardando.length ? ` (${aguardando.length})` : ""}`],
             ["fila", `Fila${fila.length ? ` (${fila.length})` : ""}`],
             ["recados", `Recados${lembretes.length ? ` (${lembretes.length})` : ""}`],
-            ["mais", "Mais"],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -628,14 +595,6 @@ export default function AdminPage() {
             onRemove={removerLembrete}
           />
         </div>
-      </div>
-
-      {/* Menos usados: carros que voltaram + rádio da TV */}
-      <div
-        className={`${aba === "mais" ? "grid" : "hidden"} gap-6 md:grid xl:grid-cols-2`}
-      >
-        <Retornos itens={retornos} onAdd={adicionarRetorno} />
-        <RadioControle config={config} onSalvar={atualizarConfig} />
       </div>
 
       {aviso && (
