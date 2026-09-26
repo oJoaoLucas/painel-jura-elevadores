@@ -121,7 +121,7 @@ export default function FilaAlinhamento({
         if (p?.tipo === "aguardando") onSoltarAguardando?.(p.id);
         else if (p?.tipo === "elevador") onSoltarElevador?.(p.id);
       }}
-      className={`rounded-xl border bg-jura-panel p-5 shadow-card transition-shadow ${
+      className={`h-full rounded-xl border bg-jura-panel p-5 shadow-card transition-shadow ${
         sobre ? "border-jura-amber ring-2 ring-jura-amber" : "border-transparent"
       }`}
     >

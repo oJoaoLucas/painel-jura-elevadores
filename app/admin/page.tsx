@@ -557,55 +557,42 @@ export default function AdminPage() {
           </div>
       </section>
 
-      {/* Entrada por voz: abaixo dos elevadores (os 4 ficam no topo) */}
-      <ComandoVoz
-        elevadores={slots}
-        elevadoresLivres={elevadoresLivres}
-        onExecutar={executarComando}
-      />
+      {/* No celular: abas pra não empilhar tudo numa página enorme */}
+      <nav
+        aria-label="Seções da recepção"
+        className="sticky top-0 z-30 -mx-4 flex gap-1 border-y border-jura-border bg-jura-bg/95 px-4 py-2 backdrop-blur md:hidden"
+      >
+        {(
+          [
+            ["espera", `Espera${aguardando.length ? ` (${aguardando.length})` : ""}`],
+            ["fila", `Fila${fila.length ? ` (${fila.length})` : ""}`],
+            ["recados", `Recados${lembretes.length ? ` (${lembretes.length})` : ""}`],
+            ["mais", "Mais"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => setAba(id)}
+            aria-pressed={aba === id}
+            className={`flex-1 whitespace-nowrap rounded-md px-1 py-2 text-[13px] font-semibold ${
+              aba === id
+                ? "bg-jura-red text-white"
+                : "text-jura-muted hover:text-jura-ink"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
 
-        {/* No celular: abas pra não empilhar tudo numa página enorme */}
-        <nav
-          aria-label="Seções da recepção"
-          className="sticky top-0 z-30 -mx-4 flex gap-1 border-y border-jura-border bg-jura-bg/95 px-4 py-2 backdrop-blur md:hidden"
-        >
-          {(
-            [
-              ["espera", `Espera${aguardando.length ? ` (${aguardando.length})` : ""}`],
-              ["fila", `Fila${fila.length ? ` (${fila.length})` : ""}`],
-              ["recados", `Recados${lembretes.length ? ` (${lembretes.length})` : ""}`],
-              ["mais", "Mais"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              onClick={() => setAba(id)}
-              aria-pressed={aba === id}
-              className={`flex-1 whitespace-nowrap rounded-md px-1 py-2 text-[13px] font-semibold ${
-                aba === id
-                  ? "bg-jura-red text-white"
-                  : "text-jura-muted hover:text-jura-ink"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </nav>
-
-        <div className={`${aba === "espera" ? "" : "hidden"} md:block`}>
-          <Aguardando
-            itens={aguardando}
-            elevadoresLivres={elevadoresLivres}
-            onAdd={adicionarAguardando}
-            onRemove={removerAguardando}
-            onMover={moverParaElevador}
-            onMoverAlinhamento={aguardandoParaAlinhamento}
-          />
-        </div>
-
-      {/* Fila + Lembretes: lado a lado só em tela larga */}
+      {/* Linhas de 2 blocos com a mesma altura: menores juntos, maiores juntos */}
       <div className="grid gap-6 xl:grid-cols-2">
-        <div className={`${aba === "fila" ? "" : "hidden"} md:block`}>
+        <ComandoVoz
+          elevadores={slots}
+          elevadoresLivres={elevadoresLivres}
+          onExecutar={executarComando}
+        />
+        <div className={`${aba === "fila" ? "" : "hidden"} h-full md:block`}>
           <FilaAlinhamento
             itens={fila}
             mode="admin"
@@ -619,7 +606,21 @@ export default function AdminPage() {
             onSoltarElevador={(elevId) => moverParaAlinhamento(elevId)}
           />
         </div>
-        <div className={`${aba === "recados" ? "" : "hidden"} md:block`}>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <div className={`${aba === "espera" ? "" : "hidden"} h-full md:block`}>
+          <Aguardando
+            itens={aguardando}
+            elevadoresLivres={elevadoresLivres}
+            onAdd={adicionarAguardando}
+            onRemove={removerAguardando}
+            onMover={moverParaElevador}
+            onMoverAlinhamento={aguardandoParaAlinhamento}
+            vertical
+          />
+        </div>
+        <div className={`${aba === "recados" ? "" : "hidden"} h-full md:block`}>
           <Lembretes
             lembretes={lembretes}
             mode="admin"

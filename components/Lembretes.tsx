@@ -104,7 +104,7 @@ export default function Lembretes({
   };
 
   return (
-    <div className="rounded-xl bg-jura-panel p-5 shadow-card">
+    <div className="h-full rounded-xl bg-jura-panel p-5 shadow-card">
       <h2 className="section-title mb-4 text-lg">Lembretes</h2>
 
       <div className="mb-4 space-y-2">

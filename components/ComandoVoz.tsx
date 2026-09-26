@@ -163,13 +163,13 @@ export default function ComandoVoz({
     "w-full rounded-lg border border-jura-border bg-jura-input px-3 py-2.5 text-base outline-none focus:border-jura-red";
 
   return (
-    <section className="rounded-xl border border-jura-border bg-jura-panel p-2.5">
-      {/* Barra única: título curto + campo + botões na mesma linha no desktop */}
+    <section className="h-full min-w-0 rounded-xl bg-jura-panel p-5 shadow-card">
+      <h2 className="section-title mb-4 flex items-center gap-2 text-lg">
+        Comando por voz
+        <IconMic className="h-4 w-4 shrink-0 text-jura-red" />
+      </h2>
+      {/* Campo + botões na mesma linha no desktop */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <h2 className="flex shrink-0 items-center gap-1.5 px-1 font-title text-xl leading-none tracking-wide text-jura-muted">
-          <IconMic className="h-4 w-4 shrink-0 text-jura-red" />
-          Comando por voz
-        </h2>
         <textarea
           value={texto}
           onChange={(e) => setTexto(e.target.value)}

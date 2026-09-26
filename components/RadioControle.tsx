@@ -18,7 +18,7 @@ export default function RadioControle({
   const salvar = onSalvar;
 
   return (
-    <section className="min-w-0 rounded-xl bg-jura-card p-4 sm:p-6">
+    <section className="h-full min-w-0 rounded-xl bg-jura-panel p-5 shadow-card">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="section-title text-lg">Rádio da TV</h2>
         <button
