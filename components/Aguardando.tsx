@@ -74,7 +74,11 @@ export default function Aguardando({
       </p>
 
       {/* Formulário de cadastro */}
-      <div className={`mb-5 grid gap-3 ${vertical ? "" : "lg:grid-cols-2"}`}>
+      <div
+        className={`mb-4 grid gap-3 ${
+          vertical ? "" : "lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.6fr)_auto] lg:items-start"
+        }`}
+      >
         <div className="flex min-w-0 gap-2">
           <input
             value={placa}
@@ -89,7 +93,7 @@ export default function Aguardando({
             className="w-full min-w-0 flex-1 rounded-lg border border-jura-border bg-jura-input px-3 py-2 outline-none focus:border-jura-red"
           />
         </div>
-        <div className={vertical ? "" : "lg:row-span-2"}>
+        <div className="min-w-0">
           <ServicoSelector
             selecionados={selecionados}
             extra={extra}
@@ -114,7 +118,7 @@ export default function Aguardando({
       ) : (
         <div
           className={`grid gap-2 ${
-            vertical ? "" : "sm:grid-cols-2 lg:grid-cols-3"
+            vertical ? "" : "sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6"
           }`}
         >
           {itens.map((item) => (

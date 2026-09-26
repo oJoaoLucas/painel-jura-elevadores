@@ -384,6 +384,31 @@ function ElevadorAdminCard({
     if (ok) onVoltarAguardando?.(elevador.id);
   };
 
+  const campoPrevisto = (
+    <div className="flex flex-wrap items-center gap-2">
+      <label className="text-sm text-jura-muted">Tempo previsto</label>
+      <input
+        type="number"
+        min={0}
+        value={previstoH}
+        onChange={(e) => setPrevistoH(e.target.value)}
+        placeholder="0"
+        className="w-14 rounded-lg border border-jura-border bg-jura-input px-2 py-1.5 text-center font-mono text-sm outline-none focus:border-jura-red"
+      />
+      <span className="text-sm text-jura-muted">h</span>
+      <input
+        type="number"
+        min={0}
+        max={59}
+        value={previstoM}
+        onChange={(e) => setPrevistoM(e.target.value)}
+        placeholder="0"
+        className="w-14 rounded-lg border border-jura-border bg-jura-input px-2 py-1.5 text-center font-mono text-sm outline-none focus:border-jura-red"
+      />
+      <span className="text-sm text-jura-muted">min (opcional)</span>
+    </div>
+  );
+
   return (
     <div
       onDragOver={
@@ -510,35 +535,15 @@ function ElevadorAdminCard({
           onExtra={setExtra}
           onMecanico={setMecanico}
           compacto
+          emLinha
         />
 
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="text-sm text-jura-muted">Tempo previsto</label>
-          <input
-            type="number"
-            min={0}
-            value={previstoH}
-            onChange={(e) => setPrevistoH(e.target.value)}
-            placeholder="0"
-            className="w-14 rounded-lg border border-jura-border bg-jura-input px-2 py-1.5 text-center font-mono text-sm outline-none focus:border-jura-red"
-          />
-          <span className="text-sm text-jura-muted">h</span>
-          <input
-            type="number"
-            min={0}
-            max={59}
-            value={previstoM}
-            onChange={(e) => setPrevistoM(e.target.value)}
-            placeholder="0"
-            className="w-14 rounded-lg border border-jura-border bg-jura-input px-2 py-1.5 text-center font-mono text-sm outline-none focus:border-jura-red"
-          />
-          <span className="text-sm text-jura-muted">min (opcional)</span>
-        </div>
+        {livre && campoPrevisto}
       </div>
 
       {/* Status (Ocupado / Pronto) separado das ações */}
       {!livre && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
           <div
             role="group"
             aria-label="Status do elevador"
@@ -562,6 +567,7 @@ function ElevadorAdminCard({
               );
             })}
           </div>
+          {campoPrevisto}
           <button
             onClick={handleAguardando}
             className="ml-auto flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-semibold text-jura-muted transition-colors hover:bg-white/5 hover:text-jura-ink"

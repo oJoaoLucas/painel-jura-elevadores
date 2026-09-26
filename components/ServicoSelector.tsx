@@ -22,6 +22,7 @@ export default function ServicoSelector({
   onExtra,
   onMecanico,
   compacto = false,
+  emLinha = false,
 }: {
   selecionados: string[];
   extra: string;
@@ -30,12 +31,32 @@ export default function ServicoSelector({
   onExtra: (valor: string) => void;
   onMecanico: (valor: string) => void;
   compacto?: boolean;
+  // Mecânico na mesma linha dos serviços e observação com 1 linha (card largo)
+  emLinha?: boolean;
 }) {
   const MECANICOS = useMecanicos();
+
+  const seletorMecanico = (
+    <select
+      value={mecanico}
+      onChange={(e) => onMecanico(e.target.value)}
+      className={`rounded-lg border border-jura-border bg-jura-input px-3 py-2 outline-none focus:border-jura-red ${
+        emLinha ? "w-full sm:ml-auto sm:w-64" : "w-full"
+      }`}
+    >
+      <option value="">Mecânico responsável…</option>
+      {MECANICOS.map((m) => (
+        <option key={m} value={m}>
+          {m}
+        </option>
+      ))}
+    </select>
+  );
+
   return (
     <div className={compacto ? "space-y-2" : "space-y-3"}>
-      {/* Serviços padrão */}
-      <div className="flex flex-wrap gap-2">
+      {/* Serviços padrão (+ mecânico ao lado, se emLinha) */}
+      <div className={`flex flex-wrap gap-2 ${emLinha ? "items-center" : ""}`}>
         {SERVICOS_PADRAO.map((s) => {
           const ativo = selecionados.includes(s);
           const icone = ICONE_SERVICO[s];
@@ -62,6 +83,7 @@ export default function ServicoSelector({
             </button>
           );
         })}
+        {emLinha && seletorMecanico}
       </div>
 
       {/* Texto livre */}
@@ -73,19 +95,7 @@ export default function ServicoSelector({
         className="w-full resize-y rounded-lg border border-jura-border bg-jura-input px-3 py-2 leading-snug outline-none focus:border-jura-red"
       />
 
-      {/* Mecânico */}
-      <select
-        value={mecanico}
-        onChange={(e) => onMecanico(e.target.value)}
-        className="w-full rounded-lg border border-jura-border bg-jura-input px-3 py-2 outline-none focus:border-jura-red"
-      >
-        <option value="">Mecânico responsável…</option>
-        {MECANICOS.map((m) => (
-          <option key={m} value={m}>
-            {m}
-          </option>
-        ))}
-      </select>
+      {!emLinha && seletorMecanico}
     </div>
   );
 }

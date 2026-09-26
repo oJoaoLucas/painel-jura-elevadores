@@ -532,16 +532,8 @@ export default function AdminPage() {
         acoes={<AtualizarTV onSalvar={atualizarConfig} />}
       />
 
-      {/* Entrada por voz: barra fina logo acima dos elevadores */}
-      <ComandoVoz
-        elevadores={slots}
-        elevadoresLivres={elevadoresLivres}
-        onExecutar={executarComando}
-      />
-
-      {/* Elevadores (esquerda) + Carros aguardando (bloco à direita) */}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <section aria-label="Elevadores">
+      {/* Elevadores: faixa exclusiva no topo */}
+      <section aria-label="Elevadores">
           <div className="grid gap-4 sm:grid-cols-2">
             {slots.map((el) => (
               <ElevadorCard
@@ -563,7 +555,14 @@ export default function AdminPage() {
               />
             ))}
           </div>
-        </section>
+      </section>
+
+      {/* Entrada por voz: abaixo dos elevadores (os 4 ficam no topo) */}
+      <ComandoVoz
+        elevadores={slots}
+        elevadoresLivres={elevadoresLivres}
+        onExecutar={executarComando}
+      />
 
         {/* No celular: abas pra não empilhar tudo numa página enorme */}
         <nav
@@ -601,10 +600,8 @@ export default function AdminPage() {
             onRemove={removerAguardando}
             onMover={moverParaElevador}
             onMoverAlinhamento={aguardandoParaAlinhamento}
-            vertical
           />
         </div>
-      </div>
 
       {/* Fila + Lembretes: lado a lado só em tela larga */}
       <div className="grid gap-6 xl:grid-cols-2">
