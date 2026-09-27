@@ -21,12 +21,33 @@ export type PedidoBot = {
   sintoma: string | null;
   assunto: string | null;
   faltando: string[];
-  motivo_repasse: "completo" | "impaciencia" | "outros" | "insistencia";
+  motivo_repasse: "completo" | "impaciencia" | "outros" | "insistencia" | "urgente" | "fora_assunto" | "fila";
   fora_horario: boolean;
   criado_em: string;
   respondido_em: string | null;
   estado: EstadoBot;
   pausado_ate: string | null;
+  itens: { medida: string | null; quantidade: number | null; tipo: "novo" | "remold" | "meia_vida" | null }[] | null;
+  urgente: boolean;
+  compareceu: boolean | null;
+  nunca_bot: boolean;
+};
+
+export type MensagemConversa = {
+  id: number;
+  autor: "cliente" | "bot" | "humano";
+  tipo: "texto" | "audio" | "imagem" | "documento" | "outro";
+  conteudo: string | null;
+  transcricao: string | null;
+  descricao_midia: string | null;
+  midia_mime: string | null;
+  midia_url: string | null;
+  criado_em: string;
+};
+
+export type Conversa = {
+  cliente: { telefone: string; nome: string | null; estado: EstadoBot; pausado_ate: string | null; nunca_bot: boolean } | null;
+  mensagens: MensagemConversa[];
 };
 
 export type PausadoBot = {
@@ -58,6 +79,8 @@ export type DadosBot = {
   pausados: PausadoBot[];
   numeros: NumerosBot;
   config: { bot_ativo: boolean; pausa_dias: number };
+  dias_fechados: { data: string; motivo: string }[];
+  ignorados: { telefone: string; nome: string | null }[];
 };
 
 const INTERVALO_MS = 30_000;
@@ -121,12 +144,25 @@ export function useBot(dias = 30) {
     await recarregar();
   };
 
-  const definirAtivo = async (valor: boolean) => {
-    await chamar("/api/bot", { method: "POST", body: JSON.stringify({ acao: "ativo", valor }) });
+  const acao = async (corpo: Record<string, unknown>) => {
+    await chamar("/api/bot", { method: "POST", body: JSON.stringify(corpo) });
     await recarregar();
   };
 
-  return { dados, erro, recarregar, retomar, definirAtivo };
+  const definirAtivo = (valor: boolean) => acao({ acao: "ativo", valor });
+  const marcarCompareceu = (id: number, valor: boolean | null) => acao({ acao: "compareceu", id, valor });
+  const definirNuncaBot = (telefone: string, valor: boolean) => acao({ acao: "nunca_bot", telefone, valor });
+  const salvarDiaFechado = (data: string, motivo: string) => acao({ acao: "fechado_add", data, motivo });
+  const removerDiaFechado = (data: string) => acao({ acao: "fechado_del", data });
+
+  return {
+    dados, erro, recarregar, retomar, definirAtivo,
+    marcarCompareceu, definirNuncaBot, salvarDiaFechado, removerDiaFechado,
+  };
+}
+
+export function carregarConversa(telefone: string): Promise<Conversa> {
+  return chamar<Conversa>(`/api/bot/conversa?tel=${encodeURIComponent(telefone)}`);
 }
 
 // ----- Formatação -----
@@ -146,6 +182,13 @@ export function linkWhatsApp(tel: string): string {
 /** Linha principal do pedido, no mesmo formato do resumo que o cliente recebe. */
 export function resumoPedido(p: PedidoBot): { titulo: string; detalhe: string | null } {
   const carro = [p.modelo, p.ano].filter(Boolean).join(" ") || null;
+  if (p.trilho === "pneu" && p.itens && p.itens.length > 1) {
+    const tipo = (t: string | null) => (t === "remold" ? " remold" : t === "meia_vida" ? " meia vida" : "");
+    return {
+      titulo: `Pneus ${p.itens.map((i) => `${i.quantidade ? `${i.quantidade}x ` : ""}${i.medida ?? "?"}${tipo(i.tipo)}`).join(" + ")}`,
+      detalhe: carro,
+    };
+  }
   if (p.trilho === "pneu") {
     const qtd = p.quantidade ? `${p.quantidade}x ` : "";
     return {
@@ -164,6 +207,9 @@ export const MOTIVO_REPASSE: Record<PedidoBot["motivo_repasse"], string | null> 
   impaciencia: "pediu atendente",
   insistencia: "insistiu no preço",
   outros: "fora da triagem",
+  urgente: "reclamação / garantia",
+  fora_assunto: "fora do assunto (bot não respondeu)",
+  fila: "quer trazer o carro",
 };
 
 export function tempoDesde(iso: string, agora = Date.now()): string {

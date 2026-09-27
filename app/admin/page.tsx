@@ -23,7 +23,7 @@ import NavMenu from "@/components/NavMenu";
 import AuthGate from "@/components/AuthGate";
 import { useDialog } from "@/components/Dialog";
 import { IconCheck } from "@/components/Icon";
-import { JurinhaRecepcao } from "@/components/Jurinha";
+import { JurinhaRecepcao, ModalConversa } from "@/components/Jurinha";
 import { useBot } from "@/lib/bot";
 
 export default function AdminPage() {
@@ -38,6 +38,7 @@ export default function AdminPage() {
   const avisoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [aba, setAba] = useState<"espera" | "fila" | "recados" | "jurinha">("espera");
   const bot = useBot();
+  const [conversaDe, setConversaDe] = useState<string | null>(null);
   const pedidosSemResposta = (bot.dados?.pedidos ?? []).filter(
     (p) => !p.respondido_em && Date.now() - new Date(p.criado_em).getTime() < 7 * 86400000
   ).length;
@@ -612,8 +613,17 @@ export default function AdminPage() {
           ativo={bot.dados?.config.bot_ativo ?? null}
           erro={bot.erro}
           onRetomar={bot.retomar}
+          onAbrirConversa={setConversaDe}
         />
       </div>
+      {conversaDe && (
+        <ModalConversa
+          telefone={conversaDe}
+          onFechar={() => setConversaDe(null)}
+          onRetomar={bot.retomar}
+          onNuncaBot={bot.definirNuncaBot}
+        />
+      )}
 
       {aviso && (
         <div

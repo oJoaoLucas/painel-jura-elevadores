@@ -3,19 +3,30 @@
 import { useState } from "react";
 import NavMenu from "@/components/NavMenu";
 import AuthGate from "@/components/AuthGate";
-import { ChaveJurinha, ItemPausado, ItemPedido, useAgora } from "@/components/Jurinha";
+import {
+  ChaveJurinha,
+  DiasFechados,
+  ItemPausado,
+  ItemPedido,
+  ModalConversa,
+  NumerosSemBot,
+  useAgora,
+} from "@/components/Jurinha";
 import { useBot } from "@/lib/bot";
 
 // Aba "Bot": tudo do Jurinha (WhatsApp) — pedidos, conversas pausadas,
-// números e o liga/desliga geral.
+// conversa inteira, veio/não veio, feriados, números sem bot e o liga/desliga.
 
 const PERIODOS = [7, 30, 90] as const;
 
 export default function BotPage() {
   const [dias, setDias] = useState<(typeof PERIODOS)[number]>(30);
-  const { dados, erro, retomar, definirAtivo } = useBot(dias);
+  const {
+    dados, erro, retomar, definirAtivo, marcarCompareceu, definirNuncaBot, salvarDiaFechado, removerDiaFechado,
+  } = useBot(dias);
   const agora = useAgora();
   const [filtro, setFiltro] = useState<"todos" | "sem_resposta">("todos");
+  const [conversaDe, setConversaDe] = useState<string | null>(null);
 
   const pedidos = (dados?.pedidos ?? []).filter((p) => filtro === "todos" || !p.respondido_em);
   const n = dados?.numeros;
@@ -107,7 +118,14 @@ export default function BotPage() {
                 ) : (
                   <ul className="space-y-2">
                     {pedidos.map((p) => (
-                      <ItemPedido key={p.id} p={p} agora={agora} onRetomar={retomar} />
+                      <ItemPedido
+                        key={p.id}
+                        p={p}
+                        agora={agora}
+                        onRetomar={retomar}
+                        onAbrirConversa={setConversaDe}
+                        onCompareceu={marcarCompareceu}
+                      />
                     ))}
                   </ul>
                 )}
@@ -132,7 +150,25 @@ export default function BotPage() {
                 )}
               </section>
             </div>
+
+            <div className="grid gap-6 xl:grid-cols-2">
+              <DiasFechados dias={dados.dias_fechados} onSalvar={salvarDiaFechado} onRemover={removerDiaFechado} />
+              <NumerosSemBot
+                numeros={dados.ignorados}
+                onAdicionar={(tel) => definirNuncaBot(tel, true)}
+                onRemover={(tel) => definirNuncaBot(tel, false)}
+              />
+            </div>
           </>
+        )}
+
+        {conversaDe && (
+          <ModalConversa
+            telefone={conversaDe}
+            onFechar={() => setConversaDe(null)}
+            onRetomar={retomar}
+            onNuncaBot={definirNuncaBot}
+          />
         )}
       </main>
     </AuthGate>
