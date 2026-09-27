@@ -90,6 +90,8 @@ export type RetornoBot = {
   nome: string | null;
   ultima_msg: string;
   dias: number;
+  /** Pediu algo e o Jurinha anotou (tem pedido não arquivado). */
+  anotado: boolean;
   ultimo_pedido: {
     trilho: PedidoBot["trilho"];
     medida: string | null;

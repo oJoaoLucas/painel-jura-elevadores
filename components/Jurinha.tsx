@@ -659,6 +659,10 @@ export function RetornoLista({
   onAbrirConversa?: (tel: string) => void;
 }) {
   const { avisar } = useDialog();
+  const [aba, setAba] = useState<"anotado" | "conversa">("anotado");
+  const anotados = itens.filter((r) => r.anotado);
+  const soConversa = itens.filter((r) => !r.anotado);
+  const lista = aba === "anotado" ? anotados : soConversa;
   const resumo = (r: RetornoBot) => {
     const p = r.ultimo_pedido;
     if (!p) return null;
@@ -674,15 +678,37 @@ export function RetornoLista({
   return (
     <section className="rounded-xl bg-jura-panel p-5 shadow-card">
       <h2 className="section-title mb-1 text-lg">Retorno — 30 dias sem falar{itens.length ? ` (${itens.length})` : ""}</h2>
-      <p className="mb-4 text-sm text-jura-muted">
+      <p className="mb-3 text-sm text-jura-muted">
         Clientes que mandaram a última mensagem há 30 dias ou mais. O Jurinha não manda nada sozinho: quem entra em
         contato é a loja. Depois de falar, marque &quot;Já entrei em contato&quot;.
       </p>
-      {itens.length === 0 ? (
-        <p className="text-jura-muted/70">Ninguém na lista agora.</p>
+      <div className="mb-4 flex gap-1" role="tablist" aria-label="Tipo de retorno">
+        {(
+          [
+            ["anotado", `Pediram algo (${anotados.length})`],
+            ["conversa", `Só conversaram (${soConversa.length})`],
+          ] as const
+        ).map(([id, rotulo]) => (
+          <button
+            key={id}
+            role="tab"
+            aria-selected={aba === id}
+            onClick={() => setAba(id)}
+            className={`rounded-md px-3 py-1 text-sm font-semibold ${
+              aba === id ? "bg-jura-red text-white" : "text-jura-muted hover:text-jura-ink"
+            }`}
+          >
+            {rotulo}
+          </button>
+        ))}
+      </div>
+      {lista.length === 0 ? (
+        <p className="text-jura-muted/70">
+          {aba === "anotado" ? "Ninguém com pedido anotado nesta lista agora." : "Ninguém nesta lista agora."}
+        </p>
       ) : (
         <ul className="space-y-2">
-          {itens.map((r) => (
+          {lista.map((r) => (
             <li key={r.telefone} className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-jura-border bg-jura-card p-3">
               <div className="min-w-0 space-y-1">
                 <Contato nome={r.nome} telefone={r.telefone} />
