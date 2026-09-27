@@ -13,23 +13,28 @@ export function estaLogado(): boolean {
   return localStorage.getItem(CHAVE) === "1" && !!localStorage.getItem(CHAVE_SENHA);
 }
 
-export async function login(senha: string): Promise<boolean> {
+/** Faz login. Devolve null se entrou, ou a mensagem de erro para mostrar. */
+export async function login(senha: string): Promise<string | null> {
   const valor = senha.trim();
-  if (!valor) return false;
+  if (!valor) return "Digite a senha.";
   try {
     const res = await fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ senha: valor }),
     });
-    if (!res.ok) return false;
+    if (res.status === 401) return "Senha incorreta. Tente novamente.";
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      return j.erro ?? "Não deu pra conferir a senha agora.";
+    }
   } catch {
-    return false;
+    return "Sem conexão. Confira a internet.";
   }
   localStorage.setItem(CHAVE, "1");
   localStorage.setItem(CHAVE_SENHA, valor);
   window.dispatchEvent(new Event(EVENTO));
-  return true;
+  return null;
 }
 
 export function logout() {

@@ -10,8 +10,8 @@ import { timingSafeEqual } from "node:crypto";
 let cliente: SupabaseClient<any, "bot"> | undefined;
 
 export function botDb() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const chave = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const url = limparEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const chave = limparEnv(process.env.SUPABASE_SERVICE_ROLE_KEY);
   if (!url || !chave) throw new ConfigFaltando("SUPABASE_SERVICE_ROLE_KEY");
   cliente ??= createClient<any, "bot">(url, chave, {
     db: { schema: "bot" },
@@ -31,15 +31,21 @@ export class ConfigFaltando extends Error {
  * NEXT_PUBLIC_ADMIN_PIN antigo fica como reserva para o login não quebrar
  * enquanto a Vercel não tiver ADMIN_PIN (lido aqui no servidor, não vai pro site).
  */
+// Mesmo cuidado do lib/supabase.ts: valor colado na Vercel pode vir com
+// BOM/zero-width, aspas nas pontas ou espaços, e aí nenhuma senha "confere".
+export function limparEnv(v?: string): string {
+  return (v ?? "").replace(/[﻿​-‍⁠]/g, "").trim().replace(/^["']+|["']+$/g, "").trim();
+}
+
 function senhaEsperada(): string {
-  const s = (process.env.ADMIN_PIN || process.env.NEXT_PUBLIC_ADMIN_PIN || "").trim();
+  const s = limparEnv(process.env.ADMIN_PIN) || limparEnv(process.env.NEXT_PUBLIC_ADMIN_PIN);
   if (!s) throw new ConfigFaltando("ADMIN_PIN");
   return s;
 }
 
 export function senhaConfere(enviada: string): boolean {
   const a = Buffer.from(senhaEsperada());
-  const b = Buffer.from(enviada.trim());
+  const b = Buffer.from(limparEnv(enviada));
   return a.length === b.length && timingSafeEqual(a, b);
 }
 

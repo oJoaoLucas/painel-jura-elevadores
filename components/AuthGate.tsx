@@ -22,7 +22,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
 function TelaLogin({ onOk }: { onOk: () => void }) {
   const [valor, setValor] = useState("");
-  const [erro, setErro] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
   const [ver, setVer] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -31,10 +31,11 @@ function TelaLogin({ onOk }: { onOk: () => void }) {
   }, []);
 
   const tentar = async () => {
-    if (await login(valor)) {
+    const falha = await login(valor);
+    if (!falha) {
       onOk();
     } else {
-      setErro(true);
+      setErro(falha);
       setValor("");
       inputRef.current?.focus();
     }
@@ -72,9 +73,9 @@ function TelaLogin({ onOk }: { onOk: () => void }) {
             value={valor}
             onChange={(e) => {
               setValor(e.target.value);
-              setErro(false);
+              setErro(null);
             }}
-            aria-invalid={erro}
+            aria-invalid={!!erro}
             className="w-full rounded-lg border bg-jura-input px-3 py-3 pr-11 text-center text-2xl tracking-[0.3em] outline-none transition-colors focus:border-jura-red"
             style={{ borderColor: erro ? "#d11f1f" : "#353c46" }}
           />
@@ -94,7 +95,7 @@ function TelaLogin({ onOk }: { onOk: () => void }) {
 
         {erro && (
           <p role="alert" className="mt-2 text-sm text-jura-red">
-            Senha incorreta. Tente novamente.
+            {erro}
           </p>
         )}
 
