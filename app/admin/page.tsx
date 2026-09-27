@@ -23,6 +23,8 @@ import NavMenu from "@/components/NavMenu";
 import AuthGate from "@/components/AuthGate";
 import { useDialog } from "@/components/Dialog";
 import { IconCheck } from "@/components/Icon";
+import { JurinhaRecepcao } from "@/components/Jurinha";
+import { useBot } from "@/lib/bot";
 
 export default function AdminPage() {
   const [elevadores, setElevadores] = useState<Elevador[]>([]);
@@ -34,7 +36,11 @@ export default function AdminPage() {
   const { avisar } = useDialog();
   const [aviso, setAviso] = useState<string | null>(null);
   const avisoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [aba, setAba] = useState<"espera" | "fila" | "recados">("espera");
+  const [aba, setAba] = useState<"espera" | "fila" | "recados" | "jurinha">("espera");
+  const bot = useBot();
+  const pedidosSemResposta = (bot.dados?.pedidos ?? []).filter(
+    (p) => !p.respondido_em && Date.now() - new Date(p.criado_em).getTime() < 7 * 86400000
+  ).length;
 
   const mostrarAviso = (texto: string) => {
     setAviso(texto);
@@ -535,6 +541,7 @@ export default function AdminPage() {
             ["espera", `Espera${aguardando.length ? ` (${aguardando.length})` : ""}`],
             ["fila", `Fila${fila.length ? ` (${fila.length})` : ""}`],
             ["recados", `Recados${lembretes.length ? ` (${lembretes.length})` : ""}`],
+            ["jurinha", `Jurinha${pedidosSemResposta ? ` (${pedidosSemResposta})` : ""}`],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -595,6 +602,17 @@ export default function AdminPage() {
             onRemove={removerLembrete}
           />
         </div>
+      </div>
+
+      {/* Jurinha (bot do WhatsApp): pedidos esperando resposta */}
+      <div className={`${aba === "jurinha" ? "" : "hidden"} md:block`}>
+        <JurinhaRecepcao
+          pedidos={bot.dados?.pedidos ?? []}
+          pausados={bot.dados?.pausados ?? []}
+          ativo={bot.dados?.config.bot_ativo ?? null}
+          erro={bot.erro}
+          onRetomar={bot.retomar}
+        />
       </div>
 
       {aviso && (

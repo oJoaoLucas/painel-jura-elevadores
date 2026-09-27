@@ -30,8 +30,8 @@ function TelaLogin({ onOk }: { onOk: () => void }) {
     inputRef.current?.focus();
   }, []);
 
-  const tentar = () => {
-    if (login(valor)) {
+  const tentar = async () => {
+    if (await login(valor)) {
       onOk();
     } else {
       setErro(true);
