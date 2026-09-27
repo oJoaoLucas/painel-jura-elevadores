@@ -81,6 +81,26 @@ export type DadosBot = {
   config: { bot_ativo: boolean; pausa_dias: number };
   dias_fechados: { data: string; motivo: string }[];
   ignorados: { telefone: string; nome: string | null }[];
+  retorno: RetornoBot[];
+};
+
+/** Cliente cuja última mensagem foi há 30 dias ou mais (lista de retorno). */
+export type RetornoBot = {
+  telefone: string;
+  nome: string | null;
+  ultima_msg: string;
+  dias: number;
+  ultimo_pedido: {
+    trilho: PedidoBot["trilho"];
+    medida: string | null;
+    quantidade: number | null;
+    servico: string | null;
+    assunto: string | null;
+    modelo: string | null;
+    ano: string | null;
+    compareceu: boolean | null;
+    criado_em: string;
+  } | null;
 };
 
 const INTERVALO_MS = 30_000;
@@ -154,10 +174,13 @@ export function useBot(dias = 30) {
   const definirNuncaBot = (telefone: string, valor: boolean) => acao({ acao: "nunca_bot", telefone, valor });
   const salvarDiaFechado = (data: string, motivo: string) => acao({ acao: "fechado_add", data, motivo });
   const removerDiaFechado = (data: string) => acao({ acao: "fechado_del", data });
+  const arquivarPedido = (id: number, valor = true) => acao({ acao: "arquivar", id, valor });
+  const marcarRetorno = (telefone: string) => acao({ acao: "retorno_feito", telefone });
 
   return {
     dados, erro, recarregar, retomar, definirAtivo,
     marcarCompareceu, definirNuncaBot, salvarDiaFechado, removerDiaFechado,
+    arquivarPedido, marcarRetorno,
   };
 }
 

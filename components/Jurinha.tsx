@@ -17,6 +17,7 @@ import {
   type MensagemConversa,
   type PausadoBot,
   type PedidoBot,
+  type RetornoBot,
 } from "@/lib/bot";
 
 // Blocos do Jurinha (bot do WhatsApp) usados na Recepção e na aba "Bot".
@@ -138,13 +139,16 @@ export function ItemPedido({
   onRetomar,
   onAbrirConversa,
   onCompareceu,
+  onArquivar,
 }: {
   p: PedidoBot;
   agora: number;
   onRetomar?: (tel: string) => Promise<void>;
   onAbrirConversa?: (tel: string) => void;
   onCompareceu?: (id: number, valor: boolean | null) => Promise<void>;
+  onArquivar?: (id: number) => Promise<void>;
 }) {
+  const { confirmar, avisar } = useDialog();
   const { titulo, detalhe } = resumoPedido(p);
   const minSemResposta = p.respondido_em ? 0 : (agora - new Date(p.criado_em).getTime()) / 60000;
   const motivo = MOTIVO_REPASSE[p.motivo_repasse];
@@ -184,7 +188,7 @@ export function ItemPedido({
           )}
           <span className="text-[11px] text-jura-muted">{dataCurta(p.criado_em)}</span>
         </div>
-        {(onAbrirConversa || onCompareceu) && (
+        {(onAbrirConversa || onCompareceu || onArquivar) && (
           <div className="flex flex-wrap items-center gap-2 pt-1">
             {onAbrirConversa && (
               <button
@@ -195,6 +199,26 @@ export function ItemPedido({
               </button>
             )}
             {onCompareceu && <BotaoVeio valor={p.compareceu} onMarcar={(v) => onCompareceu(p.id, v)} />}
+            {onArquivar && (
+              <button
+                onClick={async () => {
+                  const ok = await confirmar({
+                    titulo: "Tirar este pedido da lista?",
+                    mensagem: "Ele some do painel e dos números, mas continua guardado no banco.",
+                    confirmar: "Tirar",
+                  });
+                  if (!ok) return;
+                  try {
+                    await onArquivar(p.id);
+                  } catch (e) {
+                    await avisar(e instanceof Error ? e.message : "Não deu pra tirar o pedido.");
+                  }
+                }}
+                className="ml-auto rounded-md px-2 py-1 text-[11px] font-semibold text-jura-muted hover:text-jura-red"
+              >
+                Tirar da lista
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -569,6 +593,7 @@ export function JurinhaRecepcao({
   erro,
   onRetomar,
   onAbrirConversa,
+  onArquivar,
 }: {
   pedidos: PedidoBot[];
   pausados: PausadoBot[];
@@ -576,6 +601,7 @@ export function JurinhaRecepcao({
   erro: string | null;
   onRetomar: (tel: string) => Promise<void>;
   onAbrirConversa?: (tel: string) => void;
+  onArquivar?: (id: number) => Promise<void>;
 }) {
   const agora = useAgora();
   const esperando = pedidos.filter((p) => !p.respondido_em && agora - new Date(p.criado_em).getTime() < 7 * 86400000);
@@ -607,7 +633,7 @@ export function JurinhaRecepcao({
       ) : (
         <ul className="space-y-2">
           {esperando.slice(0, 6).map((p) => (
-            <ItemPedido key={p.id} p={p} agora={agora} onRetomar={onRetomar} onAbrirConversa={onAbrirConversa} />
+            <ItemPedido key={p.id} p={p} agora={agora} onRetomar={onRetomar} onAbrirConversa={onAbrirConversa} onArquivar={onArquivar} />
           ))}
           {esperando.length > 6 && (
             <li className="text-center text-sm text-jura-muted">
@@ -621,3 +647,80 @@ export function JurinhaRecepcao({
 }
 
 export { useAgora };
+
+/** Quem não manda mensagem há 30 dias ou mais: lista para a loja entrar em contato. */
+export function RetornoLista({
+  itens,
+  onFeito,
+  onAbrirConversa,
+}: {
+  itens: RetornoBot[];
+  onFeito: (tel: string) => Promise<void>;
+  onAbrirConversa?: (tel: string) => void;
+}) {
+  const { avisar } = useDialog();
+  const resumo = (r: RetornoBot) => {
+    const p = r.ultimo_pedido;
+    if (!p) return null;
+    const carro = [p.modelo, p.ano].filter(Boolean).join(" ");
+    const oque =
+      p.trilho === "pneu"
+        ? `Pneus ${p.quantidade ? `${p.quantidade}x ` : ""}${p.medida ?? ""}`.trim()
+        : p.trilho === "servico"
+          ? p.servico ?? "Serviço"
+          : p.assunto ?? "Atendimento";
+    return [oque, carro].filter(Boolean).join(" · ");
+  };
+  return (
+    <section className="rounded-xl bg-jura-panel p-5 shadow-card">
+      <h2 className="section-title mb-1 text-lg">Retorno — 30 dias sem falar{itens.length ? ` (${itens.length})` : ""}</h2>
+      <p className="mb-4 text-sm text-jura-muted">
+        Clientes que mandaram a última mensagem há 30 dias ou mais. O Jurinha não manda nada sozinho: quem entra em
+        contato é a loja. Depois de falar, marque &quot;Já entrei em contato&quot;.
+      </p>
+      {itens.length === 0 ? (
+        <p className="text-jura-muted/70">Ninguém na lista agora.</p>
+      ) : (
+        <ul className="space-y-2">
+          {itens.map((r) => (
+            <li key={r.telefone} className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-jura-border bg-jura-card p-3">
+              <div className="min-w-0 space-y-1">
+                <Contato nome={r.nome} telefone={r.telefone} />
+                {resumo(r) && <p className="text-sm font-semibold text-jura-amber">{resumo(r)}</p>}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Selo cor="#e0a106">
+                    <IconClock className="h-3 w-3" /> última mensagem há {r.dias} dias
+                  </Selo>
+                  {r.ultimo_pedido?.compareceu === true && <Selo cor="#2ea043">veio da última vez</Selo>}
+                  {r.ultimo_pedido?.compareceu === false && <Selo cor="#9aa3ad">não veio da última vez</Selo>}
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-wrap gap-2">
+                {onAbrirConversa && (
+                  <button
+                    onClick={() => onAbrirConversa(r.telefone)}
+                    className="rounded-md border border-jura-border px-2 py-1 text-[11px] font-semibold text-jura-ink hover:border-jura-amber hover:text-jura-amber"
+                  >
+                    Ver conversa
+                  </button>
+                )}
+                <button
+                  onClick={async () => {
+                    try {
+                      await onFeito(r.telefone);
+                    } catch (e) {
+                      await avisar(e instanceof Error ? e.message : "Não deu pra salvar.");
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 rounded-md border border-jura-green/60 px-2 py-1 text-[11px] font-semibold text-jura-green hover:bg-jura-green/10"
+                >
+                  <IconCheck className="h-3 w-3" /> Já entrei em contato
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}

@@ -10,6 +10,7 @@ import {
   ItemPedido,
   ModalConversa,
   NumerosSemBot,
+  RetornoLista,
   useAgora,
 } from "@/components/Jurinha";
 import { useBot } from "@/lib/bot";
@@ -23,6 +24,7 @@ export default function BotPage() {
   const [dias, setDias] = useState<(typeof PERIODOS)[number]>(30);
   const {
     dados, erro, retomar, definirAtivo, marcarCompareceu, definirNuncaBot, salvarDiaFechado, removerDiaFechado,
+    arquivarPedido, marcarRetorno,
   } = useBot(dias);
   const agora = useAgora();
   const [filtro, setFiltro] = useState<"todos" | "sem_resposta">("todos");
@@ -125,6 +127,7 @@ export default function BotPage() {
                         onRetomar={retomar}
                         onAbrirConversa={setConversaDe}
                         onCompareceu={marcarCompareceu}
+                        onArquivar={(id) => arquivarPedido(id)}
                       />
                     ))}
                   </ul>
@@ -150,6 +153,8 @@ export default function BotPage() {
                 )}
               </section>
             </div>
+
+            <RetornoLista itens={dados.retorno} onFeito={marcarRetorno} onAbrirConversa={setConversaDe} />
 
             <div className="grid gap-6 xl:grid-cols-2">
               <DiasFechados dias={dados.dias_fechados} onSalvar={salvarDiaFechado} onRemover={removerDiaFechado} />

@@ -614,6 +614,7 @@ export default function AdminPage() {
           erro={bot.erro}
           onRetomar={bot.retomar}
           onAbrirConversa={setConversaDe}
+          onArquivar={(id) => bot.arquivarPedido(id)}
         />
       </div>
       {conversaDe && (
