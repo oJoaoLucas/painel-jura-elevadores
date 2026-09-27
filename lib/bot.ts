@@ -18,6 +18,7 @@ export type PedidoBot = {
   servico: string | null;
   modelo: string | null;
   ano: string | null;
+  placa?: string | null;
   sintoma: string | null;
   assunto: string | null;
   faltando: string[];
@@ -206,7 +207,7 @@ export function linkWhatsApp(tel: string): string {
 
 /** Linha principal do pedido, no mesmo formato do resumo que o cliente recebe. */
 export function resumoPedido(p: PedidoBot): { titulo: string; detalhe: string | null } {
-  const carro = [p.modelo, p.ano].filter(Boolean).join(" ") || null;
+  const carro = [p.modelo, p.ano, p.placa ? `(${p.placa})` : null].filter(Boolean).join(" ") || null;
   if (p.trilho === "pneu" && p.itens && p.itens.length > 1) {
     const tipo = (t: string | null) => (t === "remold" ? " remold" : t === "meia_vida" ? " meia vida" : "");
     return {
