@@ -49,6 +49,12 @@ export function senhaSalva(): string {
   return localStorage.getItem(CHAVE_SENHA) ?? "";
 }
 
+// A aba Reclamações usa a mesma senha pra destravar as RPCs da ouvidoria
+// (ouvidoria_segredo no banco foi definido igual ao PIN da recepção).
+export function senhaRecepcao(): string {
+  return senhaSalva();
+}
+
 // Permite componentes reagirem ao login/logout (mesma aba e entre abas)
 export function ouvirAuth(cb: () => void): () => void {
   window.addEventListener(EVENTO, cb);

@@ -126,6 +126,21 @@ export type TabelaMedida = {
   created_at: string;
 };
 
+// Ouvidoria dos mecânicos (projeto jura-ouvidoria). A chave anon NÃO lê a
+// tabela: tudo passa pelas RPCs ouvidoria_listar/marcar/apagar, que exigem a
+// senha (igual ao PIN da recepção, decisão do dono).
+export type OuvidoriaTipo = "sugestao" | "reclamacao" | "elogio";
+
+export type Ouvidoria = {
+  id: string;
+  tipo: OuvidoriaTipo;
+  assunto: string | null;
+  mensagem: string;
+  nome: string | null;
+  lida: boolean;
+  created_at: string;
+};
+
 export type TabelaModelo = {
   id: string;
   medida_id: string;

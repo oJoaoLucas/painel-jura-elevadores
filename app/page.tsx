@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import IconeJura, { type NomeIcone } from "@/components/IconeJura";
-import { IconCar, IconChart, IconScreen, IconSettings } from "@/components/Icon";
+import { IconCar, IconChart, IconMegaphone, IconScreen, IconSettings } from "@/components/Icon";
 
 type Atalho = {
   href: string;
@@ -47,6 +47,13 @@ const ATALHOS: Atalho[] = [
     desc: "Histórico e métricas",
     cor: "#3b82f6",
     Svg: IconChart,
+  },
+  {
+    href: "/reclamacoes",
+    titulo: "Reclamações",
+    desc: "Sugestões e reclamações da equipe",
+    cor: "#e0a106",
+    Svg: IconMegaphone,
   },
   {
     href: "/configuracoes",
