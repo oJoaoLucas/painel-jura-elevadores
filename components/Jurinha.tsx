@@ -680,6 +680,16 @@ export function RetornoLista({
           : p.assunto ?? "Atendimento";
     return [oque, carro].filter(Boolean).join(" · ");
   };
+  const [copiado, setCopiado] = useState<string | null>(null);
+  const copiar = async (tel: string) => {
+    try {
+      await navigator.clipboard.writeText(formatarTelefone(tel));
+      setCopiado(tel);
+      setTimeout(() => setCopiado((c) => (c === tel ? null : c)), 2000);
+    } catch {
+      await avisar(`Número: ${formatarTelefone(tel)}`);
+    }
+  };
   return (
     <section className="rounded-xl bg-jura-panel p-5 shadow-card">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
@@ -699,7 +709,8 @@ export function RetornoLista({
       </div>
       <p className="mb-3 text-sm text-jura-muted">
         Clientes que mandaram a última mensagem há {dias} dias ou mais. O Jurinha não manda nada sozinho: quem entra em
-        contato é a loja. Depois de falar, marque &quot;Já entrei em contato&quot;.
+        contato é a loja. &quot;Chamar no WhatsApp&quot; abre a conversa com uma mensagem pronta (revise antes de enviar);
+        pelo celular da loja sai grátis. Depois de falar, marque &quot;Já entrei em contato&quot;.
       </p>
       <div className="mb-4 flex gap-1" role="tablist" aria-label="Tipo de retorno">
         {(
@@ -741,6 +752,20 @@ export function RetornoLista({
                 </div>
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
+                <a
+                  href={`${linkWhatsApp(r.telefone)}?text=${encodeURIComponent(mensagemRetorno(r))}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-md border border-jura-wa/60 bg-jura-wa/10 px-2 py-1 text-[11px] font-semibold text-jura-wa hover:bg-jura-wa/20"
+                >
+                  Chamar no WhatsApp
+                </a>
+                <button
+                  onClick={() => copiar(r.telefone)}
+                  className="rounded-md border border-jura-border px-2 py-1 text-[11px] font-semibold text-jura-ink hover:border-jura-amber hover:text-jura-amber"
+                >
+                  {copiado === r.telefone ? "Copiado!" : "Copiar número"}
+                </button>
                 {onAbrirConversa && (
                   <button
                     onClick={() => onAbrirConversa(r.telefone)}
@@ -798,4 +823,24 @@ export function UsoKapsoCard({ uso }: { uso: UsoKapso }) {
       <p className="mt-1 text-xs text-jura-muted">Conta as mensagens enviadas (Jurinha + atendente), que é o que o Kapso cobra.</p>
     </section>
   );
+}
+
+/** Mensagem pronta do retorno (a atendente revisa no WhatsApp antes de enviar). Nunca fala de preço. */
+export function mensagemRetorno(r: RetornoBot): string {
+  const nome = r.nome?.trim().split(/\s+/)[0];
+  const oi = `Olá${nome ? `, ${nome}` : ""}! Tudo bem? Aqui é do Jura Auto Center 😊`;
+  const p = r.ultimo_pedido;
+  if (!p) return `${oi}\n\nPassando para saber se podemos te ajudar com alguma coisa no seu carro. Estamos à disposição!`;
+  const carro = [p.modelo, p.ano].filter(Boolean).join(" ");
+  const doCarro = carro ? ` do ${carro}` : "";
+  let assunto: string;
+  if (p.trilho === "pneu") {
+    const qtd = p.quantidade ? `${p.quantidade} ` : "";
+    assunto = p.medida && !/^aro/.test(p.medida) ? `${qtd}pneus ${p.medida}${doCarro}` : `pneus${doCarro}`;
+  } else if (p.trilho === "servico") {
+    assunto = `${(p.servico ?? "o serviço").toLowerCase()}${doCarro}`;
+  } else {
+    assunto = (p.assunto ?? "o seu atendimento").toLowerCase();
+  }
+  return `${oi}\n\nVocê falou com a gente sobre ${assunto}. Conseguiu resolver? Se ainda precisar, é só responder por aqui!`;
 }
