@@ -13,6 +13,7 @@ import {
 } from "@/lib/supabase";
 import { slotsElevador } from "@/lib/status";
 import ElevadorCard from "@/components/ElevadorCard";
+import { Carregando, Esqueleto } from "@/components/Esqueleto";
 import FilaAlinhamento from "@/components/FilaAlinhamento";
 import Lembretes from "@/components/Lembretes";
 import Aguardando from "@/components/Aguardando";
@@ -28,6 +29,8 @@ import { useBot } from "@/lib/bot";
 
 export default function AdminPage() {
   const [elevadores, setElevadores] = useState<Elevador[]>([]);
+  // Até a 1ª leitura, os boxes vazios apareceriam como "livre": mostra skeleton.
+  const [elevadoresOk, setElevadoresOk] = useState(false);
   const [fila, setFila] = useState<FilaItem[]>([]);
   const [lembretes, setLembretes] = useState<Lembrete[]>([]);
   const [aguardando, setAguardando] = useState<AguardandoItem[]>([]);
@@ -68,7 +71,11 @@ export default function AdminPage() {
       .from("elevadores")
       .select("*")
       .order("id")
-      .then(({ data }) => data && setElevadores(data as Elevador[]));
+      .then(({ data }) => {
+        if (!data) return;
+        setElevadores(data as Elevador[]);
+        setElevadoresOk(true);
+      });
 
   const recarregarFila = () =>
     supabase
@@ -509,6 +516,13 @@ export default function AdminPage() {
 
       {/* Elevadores: faixa exclusiva no topo */}
       <section aria-label="Elevadores">
+          {!elevadoresOk ? (
+            <Carregando className="grid gap-4 sm:grid-cols-2">
+              {slots.map((el) => (
+                <Esqueleto key={el.id} className="h-60 rounded-xl" />
+              ))}
+            </Carregando>
+          ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {slots.map((el) => (
               <ElevadorCard
@@ -530,6 +544,7 @@ export default function AdminPage() {
               />
             ))}
           </div>
+          )}
       </section>
 
       {/* No celular: abas pra não empilhar tudo numa página enorme */}

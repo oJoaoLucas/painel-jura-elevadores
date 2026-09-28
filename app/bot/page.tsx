@@ -16,6 +16,7 @@ import {
   useVerMais,
 } from "@/components/Jurinha";
 import MiniOrcamento, { type AlvoOrcamento } from "@/components/MiniOrcamento";
+import { EsqueletoBot } from "@/components/Esqueleto";
 import { useBot } from "@/lib/bot";
 
 // Aba "Bot": tudo do Jurinha (WhatsApp) — pedidos, conversas pausadas,
@@ -56,7 +57,7 @@ export default function BotPage() {
             {erro}
           </p>
         )}
-        {!dados && !erro && <p className="text-jura-muted">Carregando o Jurinha…</p>}
+        {!dados && !erro && <EsqueletoBot />}
 
         {dados && n && (
           <>

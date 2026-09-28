@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase, type Historico } from "@/lib/supabase";
 import NavMenu from "@/components/NavMenu";
 import AuthGate from "@/components/AuthGate";
+import { Carregando, Esqueleto } from "@/components/Esqueleto";
 
 type Periodo = "hoje" | "7dias" | "30dias" | "90dias";
 
@@ -95,7 +96,15 @@ export default function RelatorioPage() {
       </div>
 
       {carregando ? (
-        <p className="text-white/40">Carregando…</p>
+        <Carregando className="space-y-8">
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <Esqueleto key={i} className="h-24 rounded-xl" />
+            ))}
+          </div>
+          <Esqueleto className="h-40 rounded-xl" />
+          <Esqueleto className="h-72 rounded-xl" />
+        </Carregando>
       ) : (
         /* ---------- Atendimentos ---------- */
         <>

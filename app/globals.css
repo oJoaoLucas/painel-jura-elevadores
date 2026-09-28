@@ -218,6 +218,27 @@ textarea:focus-visible {
   animation: modal-entra 220ms var(--ease-out) backwards;
 }
 
+/* Skeleton de carregamento: bloco cinza com um brilho que passa (movimento constante = linear) */
+@keyframes esqueleto-brilho {
+  to {
+    transform: translateX(100%);
+  }
+}
+.esqueleto {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+.esqueleto::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.07), transparent);
+  animation: esqueleto-brilho 1.4s linear infinite;
+}
+
 /* Cartões clicáveis: sobem de leve no mouse (só com mouse de verdade, não no toque) */
 .cartao-link {
   transition-property: transform, border-color, box-shadow;
@@ -241,6 +262,9 @@ textarea:focus-visible {
   }
   .cartao-link:hover {
     transform: none;
+  }
+  .esqueleto::after {
+    animation: none;
   }
 }
 

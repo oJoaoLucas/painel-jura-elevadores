@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDialog } from "@/components/Dialog";
+import { EsqueletoConversa, EsqueletoLista } from "@/components/Esqueleto";
 import { IconAlert, IconCheck, IconClock, IconUndo } from "@/components/Icon";
 import {
   MOTIVO_REPASSE,
@@ -317,7 +318,7 @@ export function ModalConversa({
 
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4">
           {erro && <p className="text-sm text-jura-muted">{erro}</p>}
-          {!conversa && !erro && <p className="text-sm text-jura-muted">Carregando…</p>}
+          {!conversa && !erro && <EsqueletoConversa />}
           {conversa?.mensagens.length === 0 && <p className="text-sm text-jura-muted">Sem mensagens registradas.</p>}
           {conversa?.mensagens.map((m) => <Balao key={m.id} m={m} />)}
           <div ref={fimRef} />
@@ -629,7 +630,7 @@ export function JurinhaRecepcao({
 }: {
   pedidos: PedidoBot[];
   pausados: PausadoBot[];
-  ativo: boolean | null;
+  ativo: boolean | null; // null = ainda carregando
   erro: string | null;
   onRetomar: (tel: string) => Promise<void>;
   onAbrirConversa?: (tel: string) => void;
@@ -657,6 +658,8 @@ export function JurinhaRecepcao({
 
       {erro ? (
         <p className="text-sm text-jura-muted">{erro}</p>
+      ) : ativo === null ? (
+        <EsqueletoLista linhas={2} alto="h-24" />
       ) : esperando.length === 0 ? (
         <p className="text-jura-muted/70">
           Nenhum pedido esperando resposta.

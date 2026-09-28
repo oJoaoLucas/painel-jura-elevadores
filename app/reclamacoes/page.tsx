@@ -6,6 +6,7 @@ import { senhaRecepcao } from "@/lib/auth";
 import NavMenu from "@/components/NavMenu";
 import AuthGate from "@/components/AuthGate";
 import { useDialog } from "@/components/Dialog";
+import { EsqueletoLista } from "@/components/Esqueleto";
 
 // Caixa das mensagens que os mecânicos mandam em jura-ouvidoria.vercel.app.
 // A chave anon não lê a tabela: tudo passa pelas RPCs ouvidoria_*, que
@@ -171,7 +172,12 @@ function Caixa() {
         </p>
       )}
 
-      <ul className="mt-5 space-y-3">
+      {carregando && lista.length === 0 && (
+        <div className="mt-5">
+          <EsqueletoLista linhas={3} alto="h-32 rounded-xl" />
+        </div>
+      )}
+      <ul className="anima-lista mt-5 space-y-3">
         {!carregando && !erro && visiveis.length === 0 && (
           <li className="rounded-xl border border-dashed border-jura-border p-8 text-center text-jura-muted">
             {filtro === "nao_lidas" ? "Nada novo por aqui." : "Nenhuma mensagem."}

@@ -8,6 +8,7 @@ import {
 } from "@/lib/supabase";
 import NavMenu from "@/components/NavMenu";
 import AuthGate from "@/components/AuthGate";
+import { Carregando, Esqueleto } from "@/components/Esqueleto";
 import { useDialog } from "@/components/Dialog";
 
 export default function PrecosPage() {
@@ -179,7 +180,11 @@ export default function PrecosPage() {
         </div>
 
         {carregando && (
-          <p className="text-jura-muted">Carregando preços…</p>
+          <Carregando className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }, (_, i) => (
+              <Esqueleto key={i} className="h-52 rounded-xl" />
+            ))}
+          </Carregando>
         )}
         {!carregando && medidas.length === 0 && (
           <p className="text-jura-muted">
