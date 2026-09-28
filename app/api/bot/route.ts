@@ -32,17 +32,20 @@ const DATA = /^\d{4}-\d{2}-\d{2}$/;
 export async function GET(req: Request) {
   try {
     if (!senhaValida(req)) return naoAutorizado();
-    const dias = Math.min(365, Math.max(1, Number(new URL(req.url).searchParams.get("dias")) || 30));
-    const [pedidos, pausados, numeros, config, dias_fechados, ignorados, retorno] = await Promise.all([
+    const params = new URL(req.url).searchParams;
+    const dias = Math.min(365, Math.max(1, Number(params.get("dias")) || 30));
+    const retornoDias = params.get("retorno") === "15" ? 15 : 30;
+    const [pedidos, pausados, numeros, config, dias_fechados, ignorados, retorno, uso] = await Promise.all([
       rpc("painel_atendimentos", { p_limite: 50 }),
       rpc("painel_pausados"),
       rpc("painel_numeros", { p_dias: dias }),
       rpc("painel_config"),
       rpc("painel_dias_fechados"),
       rpc("painel_ignorados"),
-      rpc("painel_retorno", { p_dias: 30 }),
+      rpc("painel_retorno", { p_dias: retornoDias }),
+      rpc("painel_uso"),
     ]);
-    return NextResponse.json({ pedidos, pausados, numeros, config, dias_fechados, ignorados, retorno });
+    return NextResponse.json({ pedidos, pausados, numeros, config, dias_fechados, ignorados, retorno, retorno_dias: retornoDias, uso });
   } catch (e) {
     return erro(e);
   }

@@ -83,6 +83,19 @@ export type DadosBot = {
   dias_fechados: { data: string; motivo: string }[];
   ignorados: { telefone: string; nome: string | null }[];
   retorno: RetornoBot[];
+  retorno_dias: 15 | 30;
+  uso: UsoKapso;
+};
+
+/** Mensagens enviadas no ciclo do plano do Kapso (é o que o Kapso cobra). */
+export type UsoKapso = {
+  enviadas: number;
+  limite: number;
+  inicio: string;
+  fim: string;
+  dias_passados: number;
+  dias_ciclo: number;
+  projecao: number;
 };
 
 /** Cliente cuja última mensagem foi há 30 dias ou mais (lista de retorno). */
@@ -125,7 +138,7 @@ async function chamar<T>(input: string, init?: RequestInit): Promise<T> {
 }
 
 /** Carrega os dados do Jurinha e atualiza sozinho a cada 30 s. */
-export function useBot(dias = 30) {
+export function useBot(dias = 30, retornoDias: 15 | 30 = 30) {
   const [dados, setDados] = useState<DadosBot | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const vivo = useRef(true);
@@ -134,7 +147,7 @@ export function useBot(dias = 30) {
     // A página monta antes do login (o AuthGate só esconde a tela); sem sessão, não busca.
     if (!estaLogado()) return;
     try {
-      const d = await chamar<DadosBot>(`/api/bot?dias=${dias}`);
+      const d = await chamar<DadosBot>(`/api/bot?dias=${dias}&retorno=${retornoDias}`);
       if (vivo.current) {
         setDados(d);
         setErro(null);
@@ -142,7 +155,7 @@ export function useBot(dias = 30) {
     } catch (e) {
       if (vivo.current) setErro(e instanceof Error ? e.message : String(e));
     }
-  }, [dias]);
+  }, [dias, retornoDias]);
 
   useEffect(() => {
     vivo.current = true;

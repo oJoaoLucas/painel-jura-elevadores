@@ -11,6 +11,7 @@ import {
   ModalConversa,
   NumerosSemBot,
   RetornoLista,
+  UsoKapsoCard,
   useAgora,
 } from "@/components/Jurinha";
 import { useBot } from "@/lib/bot";
@@ -22,10 +23,11 @@ const PERIODOS = [7, 30, 90] as const;
 
 export default function BotPage() {
   const [dias, setDias] = useState<(typeof PERIODOS)[number]>(30);
+  const [retornoDias, setRetornoDias] = useState<15 | 30>(30);
   const {
     dados, erro, retomar, definirAtivo, marcarCompareceu, definirNuncaBot, salvarDiaFechado, removerDiaFechado,
     arquivarPedido, marcarRetorno,
-  } = useBot(dias);
+  } = useBot(dias, retornoDias);
   const agora = useAgora();
   const [filtro, setFiltro] = useState<"todos" | "sem_resposta">("todos");
   const [conversaDe, setConversaDe] = useState<string | null>(null);
@@ -77,6 +79,7 @@ export default function BotPage() {
                 <Metrica titulo="Sem resposta" valor={n.sem_resposta} cor="#e0a106" />
                 <Metrica titulo="Preço bloqueado" valor={n.bloqueios_preco} cor="#9aa3ad" />
               </div>
+              {dados.uso && <UsoKapsoCard uso={dados.uso} />}
               <div className="grid gap-4 lg:grid-cols-2">
                 <Barras
                   titulo="Medidas mais pedidas"
@@ -154,7 +157,13 @@ export default function BotPage() {
               </section>
             </div>
 
-            <RetornoLista itens={dados.retorno} onFeito={marcarRetorno} onAbrirConversa={setConversaDe} />
+            <RetornoLista
+              itens={dados.retorno}
+              dias={retornoDias}
+              onMudarDias={setRetornoDias}
+              onFeito={marcarRetorno}
+              onAbrirConversa={setConversaDe}
+            />
 
             <div className="grid gap-6 xl:grid-cols-2">
               <DiasFechados dias={dados.dias_fechados} onSalvar={salvarDiaFechado} onRemover={removerDiaFechado} />

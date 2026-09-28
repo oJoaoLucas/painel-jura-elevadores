@@ -18,6 +18,7 @@ import {
   type PausadoBot,
   type PedidoBot,
   type RetornoBot,
+  type UsoKapso,
 } from "@/lib/bot";
 
 // Blocos do Jurinha (bot do WhatsApp) usados na Recepção e na aba "Bot".
@@ -651,10 +652,14 @@ export { useAgora };
 /** Quem não manda mensagem há 30 dias ou mais: lista para a loja entrar em contato. */
 export function RetornoLista({
   itens,
+  dias,
+  onMudarDias,
   onFeito,
   onAbrirConversa,
 }: {
   itens: RetornoBot[];
+  dias: 15 | 30;
+  onMudarDias: (d: 15 | 30) => void;
   onFeito: (tel: string) => Promise<void>;
   onAbrirConversa?: (tel: string) => void;
 }) {
@@ -677,9 +682,23 @@ export function RetornoLista({
   };
   return (
     <section className="rounded-xl bg-jura-panel p-5 shadow-card">
-      <h2 className="section-title mb-1 text-lg">Retorno — 30 dias sem falar{itens.length ? ` (${itens.length})` : ""}</h2>
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="section-title text-lg">Retorno — {dias} dias sem falar{itens.length ? ` (${itens.length})` : ""}</h2>
+        <div className="flex gap-1" role="group" aria-label="Prazo do retorno">
+          {([15, 30] as const).map((d) => (
+            <button
+              key={d}
+              onClick={() => onMudarDias(d)}
+              aria-pressed={dias === d}
+              className={`rounded-md px-3 py-1 text-sm font-semibold ${dias === d ? "bg-jura-red text-white" : "text-jura-muted hover:text-jura-ink"}`}
+            >
+              {d} dias
+            </button>
+          ))}
+        </div>
+      </div>
       <p className="mb-3 text-sm text-jura-muted">
-        Clientes que mandaram a última mensagem há 30 dias ou mais. O Jurinha não manda nada sozinho: quem entra em
+        Clientes que mandaram a última mensagem há {dias} dias ou mais. O Jurinha não manda nada sozinho: quem entra em
         contato é a loja. Depois de falar, marque &quot;Já entrei em contato&quot;.
       </p>
       <div className="mb-4 flex gap-1" role="tablist" aria-label="Tipo de retorno">
@@ -747,6 +766,36 @@ export function RetornoLista({
           ))}
         </ul>
       )}
+    </section>
+  );
+}
+
+/** Mensagens do plano do Kapso no ciclo (calculado das enviadas: é o que o Kapso cobra). */
+export function UsoKapsoCard({ uso }: { uso: UsoKapso }) {
+  const pct = Math.min(100, Math.round((uso.enviadas / Math.max(1, uso.limite)) * 100));
+  const pctProj = Math.round((uso.projecao / Math.max(1, uso.limite)) * 100);
+  const cor = pctProj >= 100 ? "#ff6b6b" : pctProj >= 80 ? "#e0a106" : "#2ea043";
+  const fmt = (n: number) => n.toLocaleString("pt-BR");
+  const data = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  return (
+    <section className="rounded-xl bg-jura-card p-5">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="section-title text-base">Plano do Kapso (WhatsApp)</h3>
+        <span className="text-xs text-jura-muted">
+          ciclo {data(uso.inicio)} a {data(uso.fim)} · dia {uso.dias_passados} de {uso.dias_ciclo}
+        </span>
+      </div>
+      <p className="text-2xl font-black tabular-nums">
+        {fmt(uso.enviadas)} <span className="text-base font-semibold text-jura-muted">de {fmt(uso.limite)} mensagens ({pct}%)</span>
+      </p>
+      <div className="mt-2 h-3 overflow-hidden rounded bg-black/40" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+        <div className="h-full rounded" style={{ width: `${pct}%`, backgroundColor: cor }} />
+      </div>
+      <p className="mt-2 text-sm" style={{ color: cor }}>
+        No ritmo atual, fecha o ciclo com ~{fmt(uso.projecao)} ({pctProj}% do plano)
+        {pctProj >= 100 ? " — vai estourar: hora de subir para o Pro (US$ 25/mês, 100 mil)." : "."}
+      </p>
+      <p className="mt-1 text-xs text-jura-muted">Conta as mensagens enviadas (Jurinha + atendente), que é o que o Kapso cobra.</p>
     </section>
   );
 }
