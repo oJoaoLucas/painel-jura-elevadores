@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { estaLogado, logout, ouvirAuth, senhaSalva } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 
 // Jurinha (bot do WhatsApp): dados vêm de /api/bot (servidor), nunca direto do Supabase.
+// Do Supabase o navegador só escuta public.bot_sinal (um horário, sem dado de cliente),
+// que o banco atualiza quando entra/muda pedido: aí recarrega na hora.
 
 export type EstadoBot = "bot" | "aguardando_atendente" | "humano";
 
@@ -137,7 +140,7 @@ async function chamar<T>(input: string, init?: RequestInit): Promise<T> {
   return json as T;
 }
 
-/** Carrega os dados do Jurinha e atualiza sozinho a cada 30 s. */
+/** Carrega os dados do Jurinha; atualiza na hora quando o banco avisa (Realtime) e, de reserva, a cada 30 s. */
 export function useBot(dias = 30, retornoDias: 15 | 30 = 30) {
   const [dados, setDados] = useState<DadosBot | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -167,11 +170,22 @@ export function useBot(dias = 30, retornoDias: 15 | 30 = 30) {
       if (estaLogado()) recarregar();
       else setDados(null);
     });
+    // Aviso do banco: junta rajadas (vários updates do mesmo pedido) num recarregar só.
+    let espera: ReturnType<typeof setTimeout> | undefined;
+    const canal = supabase
+      .channel(`bot-sinal-${Math.random().toString(36).slice(2)}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "bot_sinal" }, () => {
+        clearTimeout(espera);
+        espera = setTimeout(recarregar, 800);
+      })
+      .subscribe();
     return () => {
       vivo.current = false;
       clearInterval(t);
+      clearTimeout(espera);
       document.removeEventListener("visibilitychange", aoVoltar);
       pararAuth();
+      supabase.removeChannel(canal);
     };
   }, [recarregar]);
 

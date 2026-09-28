@@ -91,13 +91,13 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
 
       {estado && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          className="anima-fundo fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
           onClick={() => fechar(estado.tipo === "avisar")}
           role="dialog"
           aria-modal="true"
         >
           <div
-            className="w-full max-w-sm rounded-2xl border border-jura-border bg-jura-card p-6 shadow-card"
+            className="anima-modal w-full max-w-sm rounded-2xl border border-jura-border bg-jura-card p-6 shadow-card"
             onClick={(e) => e.stopPropagation()}
           >
             {estado.titulo && (

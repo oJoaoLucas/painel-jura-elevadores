@@ -127,7 +127,7 @@ export default function BotPage() {
                 {pedidos.length === 0 ? (
                   <p className="text-jura-muted/70">Nenhum pedido.</p>
                 ) : (
-                  <ul className="space-y-2">
+                  <ul className="anima-lista space-y-2">
                     {verPedidos.visiveis.map((p) => (
                       <ItemPedido
                         key={p.id}
@@ -162,7 +162,7 @@ export default function BotPage() {
                 {dados.pausados.length === 0 ? (
                   <p className="text-jura-muted/70">Nenhuma conversa pausada.</p>
                 ) : (
-                  <ul className="space-y-2">
+                  <ul className="anima-lista space-y-2">
                     {verPausados.visiveis.map((c) => (
                       <ItemPausado key={c.telefone} c={c} onRetomar={retomar} />
                     ))}
@@ -230,7 +230,7 @@ function Barras({
       {itens.length === 0 ? (
         <p className="text-jura-muted/60">Sem dados no período.</p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="anima-lista space-y-2">
           {itens.map(([nome, qtd, extra]) => (
             <li key={nome} className="flex items-center gap-3 text-sm">
               <span className="w-40 truncate font-mono">{nome}</span>

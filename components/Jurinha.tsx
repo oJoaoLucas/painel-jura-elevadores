@@ -301,10 +301,10 @@ export function ModalConversa({
       role="dialog"
       aria-modal="true"
       aria-label="Conversa com o cliente"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3"
+      className="anima-fundo fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3"
       onClick={(e) => e.target === e.currentTarget && onFechar()}
     >
-      <div className="flex max-h-[92dvh] w-full max-w-2xl flex-col rounded-xl border border-jura-border bg-jura-panel shadow-card">
+      <div className="anima-modal flex max-h-[92dvh] w-full max-w-2xl flex-col rounded-xl border border-jura-border bg-jura-panel shadow-card">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-jura-border p-4">
           <Contato nome={cliente?.nome ?? null} telefone={telefone} />
           <div className="flex flex-wrap items-center gap-2">
@@ -462,7 +462,7 @@ export function DiasFechados({
       {dias.length === 0 ? (
         <p className="text-jura-muted/70">Nenhum dia fechado cadastrado.</p>
       ) : (
-        <ul className="space-y-1.5">
+        <ul className="anima-lista space-y-1.5">
           {verDias.visiveis.map((d) => (
             <li key={d.data} className="flex items-center justify-between gap-2 rounded-lg border border-jura-border bg-jura-card px-3 py-2 text-sm">
               <span>
@@ -532,7 +532,7 @@ export function NumerosSemBot({
       {numeros.length === 0 ? (
         <p className="text-jura-muted/70">Nenhum número na lista.</p>
       ) : (
-        <ul className="space-y-1.5">
+        <ul className="anima-lista space-y-1.5">
           {verNumeros.visiveis.map((n) => (
             <li key={n.telefone} className="flex items-center justify-between gap-2 rounded-lg border border-jura-border bg-jura-card px-3 py-2 text-sm">
               <Contato nome={n.nome} telefone={n.telefone} />
@@ -663,7 +663,7 @@ export function JurinhaRecepcao({
           {pausados.length > 0 && ` ${pausados.length} conversa${pausados.length > 1 ? "s" : ""} com o bot pausado.`}
         </p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="anima-lista space-y-2">
           {esperando.slice(0, 6).map((p) => (
             <ItemPedido key={p.id} p={p} agora={agora} onRetomar={onRetomar} onAbrirConversa={onAbrirConversa} onArquivar={onArquivar} />
           ))}
@@ -769,7 +769,7 @@ export function RetornoLista({
           {aba === "anotado" ? "Ninguém com pedido anotado nesta lista agora." : "Ninguém nesta lista agora."}
         </p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="anima-lista space-y-2">
           {verLista.visiveis.map((r) => (
             <li key={r.telefone} className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-jura-border bg-jura-card p-3">
               <div className="min-w-0 space-y-1">

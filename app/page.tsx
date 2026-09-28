@@ -89,7 +89,7 @@ export default function Home() {
           <Link
             key={href}
             href={href}
-            className="group flex items-center gap-4 rounded-xl border border-jura-border bg-jura-card p-5 shadow-card transition-all hover:-translate-y-0.5 hover:border-jura-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-jura-red/60"
+            className="anima-entra cartao-link group flex items-center gap-4 rounded-xl border border-jura-border bg-jura-card p-5 shadow-card hover:border-jura-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-jura-red/60"
           >
             <span
               className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl"

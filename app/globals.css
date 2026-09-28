@@ -154,6 +154,96 @@ textarea:focus-visible {
   }
 }
 
+/* ===== Movimento das telas de gestão (a TV fica de fora) =====
+   Só transform/opacity, animação CSS (roda fora da thread principal),
+   curva forte de saída e tudo abaixo de 300ms. */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+@keyframes entra-subindo {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes entra-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes modal-entra {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+}
+
+/* Abrir a tela: blocos entram em cascata (o menu do topo, 1º filho, não anima) */
+.gestao > :not(:first-child):not(.fixed),
+.anima-entra {
+  animation: entra-subindo 260ms var(--ease-out) backwards;
+}
+.gestao > :nth-child(3),
+.anima-entra:nth-child(2) {
+  animation-delay: 50ms;
+}
+.gestao > :nth-child(4),
+.anima-entra:nth-child(3) {
+  animation-delay: 100ms;
+}
+.gestao > :nth-child(5),
+.anima-entra:nth-child(4) {
+  animation-delay: 150ms;
+}
+.gestao > :nth-child(n + 6),
+.anima-entra:nth-child(n + 5) {
+  animation-delay: 200ms;
+}
+
+/* Item que chega na lista (pedido novo, "Ver mais"): desliza curto */
+.anima-lista > li {
+  animation: entra-subindo 220ms var(--ease-out) backwards;
+}
+.anima-lista > li:nth-child(2) { animation-delay: 30ms; }
+.anima-lista > li:nth-child(3) { animation-delay: 60ms; }
+.anima-lista > li:nth-child(4) { animation-delay: 90ms; }
+.anima-lista > li:nth-child(5) { animation-delay: 120ms; }
+.anima-lista > li:nth-child(n + 6) { animation-delay: 150ms; }
+
+/* Modais: fundo escurece, janela abre com zoom leve (centralizada, sem origem) */
+.anima-fundo {
+  animation: entra-fade 200ms var(--ease-out) backwards;
+}
+.anima-modal {
+  animation: modal-entra 220ms var(--ease-out) backwards;
+}
+
+/* Cartões clicáveis: sobem de leve no mouse (só com mouse de verdade, não no toque) */
+.cartao-link {
+  transition-property: transform, border-color, box-shadow;
+  transition-duration: 200ms;
+  transition-timing-function: ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .cartao-link:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px -12px rgba(200, 16, 46, 0.55);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gestao > :not(:first-child):not(.fixed),
+  .anima-entra,
+  .anima-lista > li,
+  .anima-modal {
+    animation: entra-fade 150ms ease backwards;
+    animation-delay: 0ms;
+  }
+  .cartao-link:hover {
+    transform: none;
+  }
+}
+
 
 /* Título de seção em Bebas Neue com etiqueta vermelha (mesma assinatura visual) */
 .title-brand {
