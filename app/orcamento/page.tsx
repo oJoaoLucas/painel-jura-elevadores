@@ -5,49 +5,15 @@ import NavMenu from "@/components/NavMenu";
 import AuthGate from "@/components/AuthGate";
 import { IconCheck } from "@/components/Icon";
 import IconeJura from "@/components/IconeJura";
-
-// ---- Tabela de taxas do cartão (não existe 11x) ----
-const TAXAS: Record<number, number> = {
-  1: 0.04,
-  2: 0.05,
-  3: 0.055,
-  4: 0.065,
-  5: 0.07,
-  6: 0.075,
-  7: 0.085,
-  8: 0.09,
-  9: 0.1,
-  10: 0.11,
-  12: 0.12,
-};
-const PARCELAS_OPCOES = Object.keys(TAXAS)
-  .map(Number)
-  .sort((a, b) => a - b);
-
-// Arredonda pra cima até terminar em ,90 (ex: 77,66 -> 77,90 ; 77,95 -> 78,90)
-function arredondarPara90(valor: number): number {
-  const base = Math.floor(valor + 1e-9);
-  const candidato = base + 0.9;
-  return candidato >= valor - 1e-9 ? candidato : base + 1.9;
-}
-
-// Formata número como moeda brasileira sem o "R$" (ex: 1234.9 -> "1.234,90")
-function fmt(valor: number): string {
-  return valor.toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-// Converte texto digitado ("1.234,56" ou "1234.56" ou "1234,56") em número
-function parseValor(texto: string): number {
-  const limpo = texto
-    .replace(/[^\d,.-]/g, "")
-    .replace(/\./g, "")
-    .replace(",", ".");
-  const n = parseFloat(limpo);
-  return isNaN(n) ? 0 : n;
-}
+import {
+  PARCELAS_OPCOES,
+  TAXAS,
+  arredondarPara90,
+  copiarTexto,
+  fmt,
+  parseValor,
+  textoOrcamento,
+} from "@/lib/orcamento";
 
 type Opcao = { id: number; modelo: string; valor: string };
 
@@ -88,44 +54,14 @@ export default function OrcamentoPage() {
 
   const podeGerar = medida.trim().length > 0 && opcoesValidas.length > 0;
 
-  const texto = useMemo(() => {
-    if (!podeGerar) return "";
-    const linhas: string[] = [];
-    linhas.push(
-      `Valores referentes a ${qtdPneus} ${
-        qtdPneus === 1 ? "pneu" : "pneus"
-      } ${medida.trim()} e já incluso:`
-    );
-    linhas.push("✅ Alinhamento");
-    linhas.push("✅ Balanceamento");
-    if (bicos) linhas.push("✅ Bicos novos");
-    linhas.push("");
-    opcoesValidas.forEach((o) => {
-      const parcela = arredondarPara90((o.valorNum * (1 + taxa)) / parcelas);
-      linhas.push(o.modelo.trim());
-      linhas.push(`À vista: R$ ${fmt(o.valorNum)}`);
-      linhas.push(`Ou até ${parcelas}x de R$ ${fmt(parcela)}`);
-      linhas.push("");
-    });
-    linhas.push(
-      "Obs.: valor para pneus montados na loja e à base de troca e preço à vista válido para Pix, débito ou dinheiro."
-    );
-    return linhas.join("\n");
-  }, [podeGerar, medida, qtdPneus, opcoesValidas, taxa, parcelas, bicos]);
+  const texto = useMemo(
+    () => (podeGerar ? textoOrcamento({ medida, qtdPneus, parcelas, bicos, opcoes: opcoesValidas }) : ""),
+    [podeGerar, medida, qtdPneus, opcoesValidas, parcelas, bicos]
+  );
 
   const copiar = async () => {
     if (!texto) return;
-    try {
-      await navigator.clipboard.writeText(texto);
-    } catch {
-      // fallback p/ navegadores sem clipboard API
-      const ta = document.createElement("textarea");
-      ta.value = texto;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-    }
+    await copiarTexto(texto);
     setCopiado(true);
     setTimeout(() => setCopiado(false), 2000);
   };

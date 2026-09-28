@@ -13,7 +13,9 @@ import {
   RetornoLista,
   UsoKapsoCard,
   useAgora,
+  useVerMais,
 } from "@/components/Jurinha";
+import MiniOrcamento, { type AlvoOrcamento } from "@/components/MiniOrcamento";
 import { useBot } from "@/lib/bot";
 
 // Aba "Bot": tudo do Jurinha (WhatsApp) — pedidos, conversas pausadas,
@@ -32,7 +34,11 @@ export default function BotPage() {
   const [filtro, setFiltro] = useState<"todos" | "sem_resposta">("todos");
   const [conversaDe, setConversaDe] = useState<string | null>(null);
 
+  const [alvo, setAlvo] = useState<AlvoOrcamento | null>(null);
+
   const pedidos = (dados?.pedidos ?? []).filter((p) => filtro === "todos" || !p.respondido_em);
+  const verPedidos = useVerMais(pedidos, 8);
+  const verPausados = useVerMais(dados?.pausados ?? []);
   const n = dados?.numeros;
 
   return (
@@ -122,7 +128,7 @@ export default function BotPage() {
                   <p className="text-jura-muted/70">Nenhum pedido.</p>
                 ) : (
                   <ul className="space-y-2">
-                    {pedidos.map((p) => (
+                    {verPedidos.visiveis.map((p) => (
                       <ItemPedido
                         key={p.id}
                         p={p}
@@ -131,11 +137,19 @@ export default function BotPage() {
                         onAbrirConversa={setConversaDe}
                         onCompareceu={marcarCompareceu}
                         onArquivar={(id) => arquivarPedido(id)}
+                        onOrcar={(p) => {
+                          setAlvo({ id: p.id, nome: p.nome, telefone: p.telefone, medida: p.medida, quantidade: p.quantidade });
+                          document.getElementById("mini-orcamento")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }}
                       />
                     ))}
                   </ul>
                 )}
+                {verPedidos.botao}
               </section>
+
+              <div className="space-y-6">
+              <MiniOrcamento alvo={alvo} onLimpar={() => setAlvo(null)} />
 
               <section className="rounded-xl bg-jura-panel p-5 shadow-card">
                 <h2 className="section-title mb-1 text-lg">
@@ -149,12 +163,14 @@ export default function BotPage() {
                   <p className="text-jura-muted/70">Nenhuma conversa pausada.</p>
                 ) : (
                   <ul className="space-y-2">
-                    {dados.pausados.map((c) => (
+                    {verPausados.visiveis.map((c) => (
                       <ItemPausado key={c.telefone} c={c} onRetomar={retomar} />
                     ))}
                   </ul>
                 )}
+                {verPausados.botao}
               </section>
+              </div>
             </div>
 
             <RetornoLista

@@ -40,6 +40,23 @@ function useAgora(ms = 30_000) {
   return agora;
 }
 
+/** Lista longa: mostra as primeiras `n` e um botão "Ver mais (X)" / "Ver menos". */
+export function useVerMais<T>(lista: T[], n = 5) {
+  const [todos, setTodos] = useState(false);
+  const escondidos = lista.length - n;
+  const visiveis = todos ? lista : lista.slice(0, n);
+  const botao =
+    escondidos > 0 ? (
+      <button
+        onClick={() => setTodos((t) => !t)}
+        className="mt-2 w-full rounded-md border border-dashed border-jura-border py-1.5 text-xs font-semibold text-jura-muted hover:border-jura-amber hover:text-jura-amber"
+      >
+        {todos ? "Ver menos" : `Ver mais (${escondidos})`}
+      </button>
+    ) : null;
+  return { visiveis, botao };
+}
+
 function Contato({ nome, telefone }: { nome: string | null; telefone: string }) {
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
@@ -141,6 +158,7 @@ export function ItemPedido({
   onAbrirConversa,
   onCompareceu,
   onArquivar,
+  onOrcar,
 }: {
   p: PedidoBot;
   agora: number;
@@ -148,6 +166,7 @@ export function ItemPedido({
   onAbrirConversa?: (tel: string) => void;
   onCompareceu?: (id: number, valor: boolean | null) => Promise<void>;
   onArquivar?: (id: number) => Promise<void>;
+  onOrcar?: (p: PedidoBot) => void;
 }) {
   const { confirmar, avisar } = useDialog();
   const { titulo, detalhe } = resumoPedido(p);
@@ -189,8 +208,16 @@ export function ItemPedido({
           )}
           <span className="text-[11px] text-jura-muted">{dataCurta(p.criado_em)}</span>
         </div>
-        {(onAbrirConversa || onCompareceu || onArquivar) && (
+        {(onAbrirConversa || onCompareceu || onArquivar || onOrcar) && (
           <div className="flex flex-wrap items-center gap-2 pt-1">
+            {onOrcar && p.trilho === "pneu" && (
+              <button
+                onClick={() => onOrcar(p)}
+                className="rounded-md border border-jura-red/60 px-2 py-1 text-[11px] font-semibold text-jura-ink hover:bg-jura-red hover:text-white"
+              >
+                Orçar
+              </button>
+            )}
             {onAbrirConversa && (
               <button
                 onClick={() => onAbrirConversa(p.telefone)}
@@ -389,6 +416,7 @@ export function DiasFechados({
 }) {
   const [data, setData] = useState("");
   const [motivo, setMotivo] = useState("");
+  const verDias = useVerMais(dias);
   const { avisar } = useDialog();
   const exec = async (f: () => Promise<void>) => {
     try {
@@ -435,7 +463,7 @@ export function DiasFechados({
         <p className="text-jura-muted/70">Nenhum dia fechado cadastrado.</p>
       ) : (
         <ul className="space-y-1.5">
-          {dias.map((d) => (
+          {verDias.visiveis.map((d) => (
             <li key={d.data} className="flex items-center justify-between gap-2 rounded-lg border border-jura-border bg-jura-card px-3 py-2 text-sm">
               <span>
                 <span className="font-mono font-semibold">{new Date(`${d.data}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" })}</span>
@@ -448,6 +476,7 @@ export function DiasFechados({
           ))}
         </ul>
       )}
+      {verDias.botao}
     </section>
   );
 }
@@ -463,6 +492,7 @@ export function NumerosSemBot({
   onRemover: (tel: string) => Promise<void>;
 }) {
   const [tel, setTel] = useState("");
+  const verNumeros = useVerMais(numeros);
   const { avisar } = useDialog();
   const exec = async (f: () => Promise<void>) => {
     try {
@@ -503,7 +533,7 @@ export function NumerosSemBot({
         <p className="text-jura-muted/70">Nenhum número na lista.</p>
       ) : (
         <ul className="space-y-1.5">
-          {numeros.map((n) => (
+          {verNumeros.visiveis.map((n) => (
             <li key={n.telefone} className="flex items-center justify-between gap-2 rounded-lg border border-jura-border bg-jura-card px-3 py-2 text-sm">
               <Contato nome={n.nome} telefone={n.telefone} />
               <button onClick={() => exec(() => onRemover(n.telefone))} className="shrink-0 text-xs font-semibold text-jura-muted hover:text-jura-red">
@@ -513,6 +543,7 @@ export function NumerosSemBot({
           ))}
         </ul>
       )}
+      {verNumeros.botao}
     </section>
   );
 }
@@ -668,6 +699,7 @@ export function RetornoLista({
   const anotados = itens.filter((r) => r.anotado);
   const soConversa = itens.filter((r) => !r.anotado);
   const lista = aba === "anotado" ? anotados : soConversa;
+  const verLista = useVerMais(lista);
   const resumo = (r: RetornoBot) => {
     const p = r.ultimo_pedido;
     if (!p) return null;
@@ -738,7 +770,7 @@ export function RetornoLista({
         </p>
       ) : (
         <ul className="space-y-2">
-          {lista.map((r) => (
+          {verLista.visiveis.map((r) => (
             <li key={r.telefone} className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-jura-border bg-jura-card p-3">
               <div className="min-w-0 space-y-1">
                 <Contato nome={r.nome} telefone={r.telefone} />
@@ -791,6 +823,7 @@ export function RetornoLista({
           ))}
         </ul>
       )}
+      {verLista.botao}
     </section>
   );
 }
