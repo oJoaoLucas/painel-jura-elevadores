@@ -32,3 +32,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# PDFs do SisMaster (têm nome de cliente): só local, para os testes
+/fixtures/

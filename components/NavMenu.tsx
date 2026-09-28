@@ -13,6 +13,7 @@ const LINKS: { href: string; label: string }[] = [
   { href: "/orcamento", label: "Orçamento" },
   { href: "/precos", label: "Preços" },
   { href: "/relatorio", label: "Relatório" },
+  { href: "/mao-de-obra", label: "Mão de obra" },
   { href: "/bot", label: "Bot" },
   { href: "/reclamacoes", label: "Reclamações" },
   { href: "/configuracoes", label: "Config" },
