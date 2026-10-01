@@ -385,3 +385,161 @@ textarea:focus-visible {
     animation: none;
   }
 }
+
+/* ===== Movimento da TV =====
+   Tela de parede, ninguém interage: o movimento só indica estado
+   (carro entrou, minuto virou, tempo correndo/pausado). Só transform/opacity
+   em animação CSS — roda na GPU, leve pro Raspberry. */
+
+/* Relógio analógico (components/RelogioAnimado.tsx) — tudo em "em" */
+.relogio {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+  border: 0.075em solid currentColor;
+  border-radius: 9999px;
+}
+.relogio-marca {
+  position: absolute;
+  inset: 0;
+}
+.relogio-marca::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0.06em;
+  width: 0.06em;
+  height: 0.11em;
+  margin-left: -0.03em;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.6;
+}
+.relogio-hora,
+.relogio-minuto {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  border-radius: 9999px;
+  background: currentColor;
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+.relogio-hora {
+  width: 0.08em;
+  height: 0.22em;
+  margin-left: -0.04em;
+  transform: rotate(120deg);
+  /* 12x mais lento que o minuto, como num relógio de verdade */
+  animation: relogio-gira 72s linear -24s infinite;
+}
+.relogio-minuto {
+  width: 0.06em;
+  height: 0.34em;
+  margin-left: -0.03em;
+  animation: relogio-gira 6s linear infinite;
+}
+.relogio-centro {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0.13em;
+  height: 0.13em;
+  margin: -0.065em 0 0 -0.065em;
+  border-radius: 9999px;
+  background: currentColor;
+}
+/* Pausado: ponteiros congelam onde estão */
+.relogio-parado .relogio-hora,
+.relogio-parado .relogio-minuto {
+  animation-play-state: paused;
+}
+@keyframes relogio-gira {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Carro entrou no elevador / elevador liberou: conteúdo sobe curto */
+.tv-entra {
+  animation: entra-subindo 280ms var(--ease-out) backwards;
+}
+/* Check do "Livre": cresce de leve (nunca de scale 0) */
+@keyframes tv-livre {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+.tv-livre-entra {
+  animation: tv-livre 280ms var(--ease-out) backwards;
+}
+/* Virou o minuto: o número novo desce no lugar (rolagem de placar) */
+@keyframes tv-tempo {
+  from {
+    opacity: 0;
+    transform: translateY(-0.18em);
+  }
+}
+.tv-tempo-troca {
+  display: inline-block;
+  animation: tv-tempo 260ms var(--ease-out) backwards;
+}
+
+/* Luz da injeção (carro demorando): pisca ao acender, como no painel do
+   carro, e fica acesa com um brilho que respira devagar. O brilho é um
+   gradiente atrás do ícone animado só em opacity (sem filter, leve). */
+.luz-injecao {
+  position: relative;
+  display: inline-flex;
+  animation: injecao-acende 900ms linear 1 backwards;
+}
+.luz-injecao::before {
+  content: "";
+  position: absolute;
+  inset: -45%;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 90, 84, 0.55) 0%,
+    rgba(209, 31, 31, 0.25) 40%,
+    transparent 70%
+  );
+  animation: injecao-brilho 2.4s ease-in-out 900ms infinite;
+}
+.luz-injecao > svg {
+  position: relative;
+}
+@keyframes injecao-acende {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  24% { opacity: 0.15; }
+  40% { opacity: 1; }
+  52% { opacity: 0.35; }
+  66%, 100% { opacity: 1; }
+}
+@keyframes injecao-brilho {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .luz-injecao,
+  .luz-injecao::before {
+    animation: none;
+  }
+  .relogio-hora,
+  .relogio-minuto {
+    animation: none;
+  }
+  .tv-entra,
+  .tv-livre-entra,
+  .tv-tempo-troca {
+    animation: entra-fade 150ms ease backwards;
+  }
+}

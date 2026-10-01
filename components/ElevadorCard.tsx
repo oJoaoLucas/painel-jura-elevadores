@@ -22,6 +22,7 @@ const COR_FASE = { ok: "#2ea043", perto: "#e0a106", estourou: "#d11f1f" };
 import { montarServico, separarServico } from "@/lib/constantes";
 import ServicoSelector from "@/components/ServicoSelector";
 import AutoFitBox from "@/components/AutoFitBox";
+import RelogioAnimado from "@/components/RelogioAnimado";
 import { setDrag, getDrag } from "@/lib/dnd";
 import {
   IconCheck,
@@ -108,6 +109,16 @@ function ElevadorPainel({
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
+  // Sem serviço informado: carro e tempo vão grandes pro meio do card
+  const foco = !livre && servicoLinhas.length === 0;
+  const corTempo = pausado
+    ? COR_PAUSA
+    : alerta
+      ? COR_ALERTA_TEXTO
+      : "rgba(255,255,255,0.85)";
+  // No modo foco o rodapé só aparece se tiver mecânico ou aviso pra mostrar
+  const mostrarRodape =
+    !livre && (!foco || pausado || alerta || !!elevador.mecanico);
 
   const cor = pausado ? COR_PAUSA : alerta ? COR_ALERTA : meta.cor;
 
@@ -147,14 +158,74 @@ function ElevadorPainel({
 
       {/* Centro */}
       {livre ? (
-        <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-2">
-          <span style={{ color: meta.cor }}>
+        <div
+          key="livre"
+          className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-2"
+        >
+          <span className="tv-livre-entra" style={{ color: meta.cor }}>
             <IconCheck className="h-20 w-20" />
           </span>
           <span className="eyebrow text-2xl text-jura-green/80">Livre</span>
         </div>
+      ) : foco ? (
+        <div
+          key={`foco-${elevador.ocupado_em}`}
+          className="tv-entra relative flex min-h-0 w-full flex-1 flex-col items-center px-3 py-3"
+        >
+          {/* Carro + placa — grande, no centro */}
+          <div className="min-h-0 w-full flex-[4]">
+            <AutoFitBox
+              max={150}
+              dep={`${elevador.carro}|${elevador.placa}`}
+              className="items-end justify-center"
+            >
+              <div className="flex flex-col items-center gap-[0.12em] text-center">
+                <span className="whitespace-nowrap font-display font-bold uppercase leading-none tracking-wider text-jura-ink">
+                  {elevador.carro || "—"}
+                </span>
+                {elevador.placa && (
+                  <span className="plate text-[0.28em]">{elevador.placa}</span>
+                )}
+              </div>
+            </AutoFitBox>
+          </div>
+
+          <div className="my-[4%] h-px w-2/5 shrink-0 bg-white/10" />
+
+          {/* Relógio animado + tempo grande */}
+          <div className="min-h-0 w-full flex-[5]">
+            <AutoFitBox
+              max={110}
+              dep={`${tempo}|${restante?.texto ?? ""}`}
+              className="items-start justify-center"
+            >
+              <div
+                className="flex flex-col items-center"
+                style={{ color: corTempo }}
+              >
+                <span className="flex items-center gap-[0.25em] font-mono font-extrabold leading-none tabular-nums">
+                  <RelogioAnimado
+                    parado={pausado}
+                    className="text-[0.85em]"
+                  />
+                  <span key={tempo} className="tv-tempo-troca">
+                    {tempo || "0min"}
+                  </span>
+                </span>
+                {restante && (
+                  <span className="mt-[0.3em] whitespace-nowrap text-[0.28em] font-semibold text-jura-muted">
+                    {restante.texto}
+                  </span>
+                )}
+              </div>
+            </AutoFitBox>
+          </div>
+        </div>
       ) : (
-        <div className="relative flex min-h-0 w-full flex-1 flex-col px-3 py-2">
+        <div
+          key={`servico-${elevador.ocupado_em}`}
+          className="tv-entra relative flex min-h-0 w-full flex-1 flex-col px-3 py-2"
+        >
           {/* Carro + placa — pequeno, no canto */}
           <div className="flex items-center gap-2 border-b border-white/10 pb-1.5">
             <span className="truncate font-display text-3xl font-bold uppercase tracking-wider text-jura-ink">
@@ -167,34 +238,29 @@ function ElevadorPainel({
 
           {/* Serviços — lista que preenche o espaço, sem cortar */}
           <div className="min-h-0 flex-1 pt-2">
-            {servicoLinhas.length === 0 ? (
-              <span className="text-xl text-jura-muted/60">
-                Sem serviço informado
-              </span>
-            ) : (
-              <AutoFitBox className="items-start" dep={servicoLinhas.join("|")}>
-                <ul className="w-full space-y-[0.3em]">
-                  {servicoLinhas.map((linha, i) => (
-                    <li
-                      key={i}
-                      className="whitespace-nowrap font-semibold leading-tight text-white"
-                    >
-                      {linha}
-                    </li>
-                  ))}
-                </ul>
-              </AutoFitBox>
-            )}
+            <AutoFitBox className="items-start" dep={servicoLinhas.join("|")}>
+              <ul className="w-full space-y-[0.3em]">
+                {servicoLinhas.map((linha, i) => (
+                  <li
+                    key={i}
+                    className="whitespace-nowrap font-semibold leading-tight text-white"
+                  >
+                    {linha}
+                  </li>
+                ))}
+              </ul>
+            </AutoFitBox>
           </div>
         </div>
       )}
 
-      {/* Rodapé: mecânico (ou aviso de parado) + tempo */}
-      {!livre && (
+      {/* Rodapé: tempo grande + restante à esquerda; à direita a luz da
+          injeção (demorando), o ícone de pausa ou o mecânico */}
+      {mostrarRodape && (
         <div
-          className={`relative flex items-center justify-between border-t px-3 py-1 ${
-            alerta ? "alerta-surge border-jura-red/40" : "border-white/10"
-          }`}
+          className={`relative flex items-center justify-between gap-3 border-t px-3 ${
+            foco ? "py-1.5" : "py-2"
+          } ${alerta ? "alerta-surge border-jura-red/40" : "border-white/10"}`}
           style={
             alerta
               ? {
@@ -204,53 +270,57 @@ function ElevadorPainel({
               : undefined
           }
         >
-          <span className="flex min-w-0 items-center gap-1 truncate text-sm">
-            {pausado ? (
-              <span
-                className="flex items-center gap-1.5 font-bold uppercase tracking-wide"
-                style={{ color: COR_PAUSA }}
-              >
-                <IconPause className="h-4 w-4 shrink-0" />
-                <span className="truncate">Tempo pausado</span>
-              </span>
-            ) : alerta ? (
-              <span
-                className="flex items-center gap-1.5 font-bold uppercase tracking-wide"
-                style={{ color: COR_ALERTA_TEXTO }}
-              >
-                <IconEngineAlert className="h-4 w-4 shrink-0" />
-                <span className="truncate">Carro muito tempo no elevador</span>
-              </span>
-            ) : (
-              elevador.mecanico && (
-                <span className="flex items-center gap-1 text-jura-muted">
-                  <IconUser className="h-3.5 w-3.5 shrink-0" />
+          {foco ? (
+            // Tempo já está grande no centro: aqui só o mecânico
+            <span className="flex min-w-0 items-center gap-1 text-base text-jura-muted">
+              {elevador.mecanico && (
+                <>
+                  <IconUser className="h-4 w-4 shrink-0" />
                   <span className="truncate">{elevador.mecanico}</span>
-                </span>
-              )
-            )}
-          </span>
-          {tempo && (
-            <span className="flex shrink-0 flex-col items-end leading-tight">
-              <span
-                className="flex items-center gap-1.5 font-mono text-lg font-extrabold tabular-nums"
-                style={{
-                  color: pausado
-                    ? COR_PAUSA
-                    : alerta
-                      ? COR_ALERTA_TEXTO
-                      : "rgba(255,255,255,0.85)",
-                }}
-              >
-                <IconClock className="h-4 w-4" />
-                {tempo}
-              </span>
-              {restante && (
-                <span className="font-semibold text-[0.65em] text-jura-muted">
-                  {restante.texto}
-                </span>
+                </>
               )}
             </span>
+          ) : (
+            tempo && (
+              <span
+                className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 gap-y-0.5"
+                style={{ color: corTempo }}
+              >
+                <span className="flex shrink-0 items-center gap-2 font-mono text-4xl font-extrabold leading-none tabular-nums">
+                  <RelogioAnimado parado={pausado} className="text-[0.85em]" />
+                  <span key={tempo} className="tv-tempo-troca">
+                    {tempo}
+                  </span>
+                </span>
+                {restante && (
+                  <span className="whitespace-nowrap text-lg font-semibold text-jura-muted">
+                    {restante.texto}
+                  </span>
+                )}
+              </span>
+            )
+          )}
+
+          {alerta ? (
+            <span
+              className="luz-injecao shrink-0"
+              style={{ color: COR_ALERTA_TEXTO }}
+              title="Carro muito tempo no elevador"
+            >
+              <IconEngineAlert className={foco ? "h-8 w-8" : "h-10 w-10"} />
+            </span>
+          ) : pausado ? (
+            <span className="shrink-0" style={{ color: COR_PAUSA }}>
+              <IconPause className={foco ? "h-7 w-7" : "h-8 w-8"} />
+            </span>
+          ) : (
+            !foco &&
+            elevador.mecanico && (
+              <span className="flex min-w-0 shrink items-center gap-1 text-base text-jura-muted">
+                <IconUser className="h-4 w-4 shrink-0" />
+                <span className="truncate">{elevador.mecanico}</span>
+              </span>
+            )
           )}
         </div>
       )}
