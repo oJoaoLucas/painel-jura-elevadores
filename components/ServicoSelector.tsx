@@ -10,6 +10,8 @@ const ICONE_SERVICO: Record<string, NomeIcone> = {
   Balanceamento: "balanceamento",
   Rodízio: "pneu",
   "Troca de óleo": "oleo",
+  "Suspensão": "suspensao",
+  Freios: "freio",
 };
 
 // Caixas de seleção de serviço + campo livre + mecânico.

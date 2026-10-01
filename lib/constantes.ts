@@ -4,6 +4,8 @@ export const SERVICOS_PADRAO = [
   "Balanceamento",
   "Rodízio",
   "Troca de óleo",
+  "Suspensão",
+  "Freios",
 ];
 
 // Junta os serviços marcados + o texto livre num único campo (uma linha cada)
