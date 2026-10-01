@@ -226,14 +226,24 @@ function ElevadorPainel({
           key={`servico-${elevador.ocupado_em}`}
           className="tv-entra relative flex min-h-0 w-full flex-1 flex-col px-3 py-2"
         >
-          {/* Carro + placa — pequeno, no canto */}
-          <div className="flex items-center gap-2 border-b border-white/10 pb-1.5">
-            <span className="truncate font-display text-3xl font-bold uppercase tracking-wider text-jura-ink">
-              {elevador.carro || "—"}
-            </span>
-            {elevador.placa && (
-              <span className="plate shrink-0 text-sm">{elevador.placa}</span>
-            )}
+          {/* Carro + placa — grande no topo; encolhe se o nome for comprido */}
+          <div className="h-14 shrink-0 border-b border-white/10 pb-1.5">
+            <AutoFitBox
+              max={48}
+              dep={`${elevador.carro}|${elevador.placa}`}
+              className="items-center"
+            >
+              <div className="flex items-center gap-[0.25em]">
+                <span className="whitespace-nowrap font-display font-bold uppercase leading-none tracking-wider text-jura-ink">
+                  {elevador.carro || "—"}
+                </span>
+                {elevador.placa && (
+                  <span className="plate shrink-0 text-[0.4em]">
+                    {elevador.placa}
+                  </span>
+                )}
+              </div>
+            </AutoFitBox>
           </div>
 
           {/* Serviços — lista que preenche o espaço, sem cortar */}
