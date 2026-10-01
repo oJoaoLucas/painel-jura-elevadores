@@ -11,7 +11,7 @@ import {
   ModalConversa,
   NumerosSemBot,
   RetornoLista,
-  UsoKapsoCard,
+  StatusWhatsAppCard,
   useAgora,
   useVerMais,
 } from "@/components/Jurinha";
@@ -86,7 +86,7 @@ export default function BotPage() {
                 <Metrica titulo="Sem resposta" valor={n.sem_resposta} cor="#e0a106" />
                 <Metrica titulo="Preço bloqueado" valor={n.bloqueios_preco} cor="#9aa3ad" />
               </div>
-              {dados.uso && <UsoKapsoCard uso={dados.uso} />}
+              {dados.status && <StatusWhatsAppCard status={dados.status} />}
               <div className="grid gap-4 lg:grid-cols-2">
                 <Barras
                   titulo="Medidas mais pedidas"

@@ -35,7 +35,7 @@ export async function GET(req: Request) {
     const params = new URL(req.url).searchParams;
     const dias = Math.min(365, Math.max(1, Number(params.get("dias")) || 30));
     const retornoDias = params.get("retorno") === "15" ? 15 : 30;
-    const [pedidos, pausados, numeros, config, dias_fechados, ignorados, retorno, uso] = await Promise.all([
+    const [pedidos, pausados, numeros, config, dias_fechados, ignorados, retorno, status] = await Promise.all([
       rpc("painel_atendimentos", { p_limite: 50 }),
       rpc("painel_pausados"),
       rpc("painel_numeros", { p_dias: dias }),
@@ -43,9 +43,10 @@ export async function GET(req: Request) {
       rpc("painel_dias_fechados"),
       rpc("painel_ignorados"),
       rpc("painel_retorno", { p_dias: retornoDias }),
-      rpc("painel_uso"),
+      // se a função ainda não existir no banco, o painel abre igual, só sem o cartão do WhatsApp
+      rpc("painel_status").catch(() => null),
     ]);
-    return NextResponse.json({ pedidos, pausados, numeros, config, dias_fechados, ignorados, retorno, retorno_dias: retornoDias, uso });
+    return NextResponse.json({ pedidos, pausados, numeros, config, dias_fechados, ignorados, retorno, retorno_dias: retornoDias, status });
   } catch (e) {
     return erro(e);
   }

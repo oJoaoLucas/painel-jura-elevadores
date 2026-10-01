@@ -24,7 +24,7 @@ export function EsqueletoLista({ linhas = 4, alto = "h-16" }: { linhas?: number;
   );
 }
 
-/** Aba Bot inteira: números, uso do plano e as duas colunas. */
+/** Aba Bot inteira: números, conexão do WhatsApp e as duas colunas. */
 export function EsqueletoBot() {
   return (
     <Carregando className="space-y-5">

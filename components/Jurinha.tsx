@@ -19,8 +19,9 @@ import {
   type PausadoBot,
   type PedidoBot,
   type RetornoBot,
-  type UsoKapso,
+  type StatusWhatsApp,
 } from "@/lib/bot";
+import { situacaoWhatsApp } from "@/lib/statusWhatsApp";
 
 // Blocos do Jurinha (bot do WhatsApp) usados na Recepção e na aba "Bot".
 
@@ -831,32 +832,23 @@ export function RetornoLista({
   );
 }
 
-/** Mensagens do plano do Kapso no ciclo (calculado das enviadas: é o que o Kapso cobra). */
-export function UsoKapsoCard({ uso }: { uso: UsoKapso }) {
-  const pct = Math.min(100, Math.round((uso.enviadas / Math.max(1, uso.limite)) * 100));
-  const pctProj = Math.round((uso.projecao / Math.max(1, uso.limite)) * 100);
-  const cor = pctProj >= 100 ? "#ff6b6b" : pctProj >= 80 ? "#e0a106" : "#2ea043";
-  const fmt = (n: number) => n.toLocaleString("pt-BR");
-  const data = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+const COR_STATUS = { ok: "#2ea043", atencao: "#e0a106", erro: "#ff6b6b" } as const;
+
+/** Conexão do WhatsApp do Jurinha (o n8n confere a Evolution a cada 2 min e grava no banco). */
+export function StatusWhatsAppCard({ status }: { status: StatusWhatsApp }) {
+  const agora = useAgora(30_000);
+  const s = situacaoWhatsApp(status, agora);
+  const cor = COR_STATUS[s.nivel];
   return (
-    <section className="rounded-xl bg-jura-card p-5">
-      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="section-title text-base">Plano do Kapso (WhatsApp)</h3>
-        <span className="text-xs text-jura-muted">
-          ciclo {data(uso.inicio)} a {data(uso.fim)} · dia {uso.dias_passados} de {uso.dias_ciclo}
-        </span>
+    <section className="rounded-xl bg-jura-card p-5" role="status" aria-live="polite" style={{ borderLeft: `4px solid ${cor}` }}>
+      <div className="flex items-center gap-3">
+        <span className="inline-block h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: cor }} aria-hidden />
+        <h3 className="section-title text-base">{s.titulo}</h3>
       </div>
-      <p className="text-2xl font-black tabular-nums">
-        {fmt(uso.enviadas)} <span className="text-base font-semibold text-jura-muted">de {fmt(uso.limite)} mensagens ({pct}%)</span>
+      <p className="mt-2 text-sm" style={{ color: s.nivel === "ok" ? undefined : cor }}>
+        {s.texto}
       </p>
-      <div className="mt-2 h-3 overflow-hidden rounded bg-black/40" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-        <div className="h-full rounded" style={{ width: `${pct}%`, backgroundColor: cor }} />
-      </div>
-      <p className="mt-2 text-sm" style={{ color: cor }}>
-        No ritmo atual, fecha o ciclo com ~{fmt(uso.projecao)} ({pctProj}% do plano)
-        {pctProj >= 100 ? " — vai estourar: hora de subir para o Pro (US$ 25/mês, 100 mil)." : "."}
-      </p>
-      <p className="mt-1 text-xs text-jura-muted">Conta as mensagens enviadas (Jurinha + atendente), que é o que o Kapso cobra.</p>
+      <p className="mt-1 text-xs text-jura-muted">Conexão do WhatsApp do Jurinha, conferida a cada 2 minutos.</p>
     </section>
   );
 }

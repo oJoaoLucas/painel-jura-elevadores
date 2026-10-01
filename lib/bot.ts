@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { estaLogado, logout, ouvirAuth, senhaSalva } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import type { StatusWhatsApp } from "@/lib/statusWhatsApp";
 
 // Jurinha (bot do WhatsApp): dados vêm de /api/bot (servidor), nunca direto do Supabase.
 // Do Supabase o navegador só escuta public.bot_sinal (um horário, sem dado de cliente),
@@ -87,19 +88,11 @@ export type DadosBot = {
   ignorados: { telefone: string; nome: string | null }[];
   retorno: RetornoBot[];
   retorno_dias: 15 | 30;
-  uso: UsoKapso;
+  /** Conexão do WhatsApp (o n8n grava a cada 2 min). null = o banco ainda não tem a função. */
+  status: StatusWhatsApp | null;
 };
 
-/** Mensagens enviadas no ciclo do plano do Kapso (é o que o Kapso cobra). */
-export type UsoKapso = {
-  enviadas: number;
-  limite: number;
-  inicio: string;
-  fim: string;
-  dias_passados: number;
-  dias_ciclo: number;
-  projecao: number;
-};
+export type { StatusWhatsApp } from "./statusWhatsApp";
 
 /** Cliente cuja última mensagem foi há 30 dias ou mais (lista de retorno). */
 export type RetornoBot = {
