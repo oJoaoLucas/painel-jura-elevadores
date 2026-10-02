@@ -263,11 +263,14 @@ export function ModalConversa({
   onFechar,
   onRetomar,
   onNuncaBot,
+  atualizacao,
 }: {
   telefone: string;
   onFechar: () => void;
   onRetomar: (tel: string) => Promise<void>;
   onNuncaBot: (tel: string, valor: boolean) => Promise<void>;
+  /** Os dados do Jurinha da página: quando mudam (Realtime ou 30 s), a conversa aberta recarrega junto. */
+  atualizacao?: unknown;
 }) {
   const [conversa, setConversa] = useState<Conversa | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -283,12 +286,15 @@ export function ModalConversa({
     }
   }, [telefone]);
 
+  // Abre carregando e recarrega sempre que a lista do Jurinha atualiza (mensagem nova, repasse, resposta da loja).
   useEffect(() => {
     carregar();
-  }, [carregar]);
+  }, [carregar, atualizacao]);
+  // Só rola até o fim quando chega mensagem nova (não puxa a tela se a pessoa estiver lendo mais acima).
+  const total = conversa?.mensagens.length ?? 0;
   useEffect(() => {
     fimRef.current?.scrollIntoView({ block: "end" });
-  }, [conversa]);
+  }, [total]);
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === "Escape" && onFechar();
     window.addEventListener("keydown", esc);

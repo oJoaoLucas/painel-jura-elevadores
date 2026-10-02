@@ -199,6 +199,7 @@ export default function BotPage() {
             onFechar={() => setConversaDe(null)}
             onRetomar={retomar}
             onNuncaBot={definirNuncaBot}
+            atualizacao={dados}
           />
         )}
       </main>

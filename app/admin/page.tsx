@@ -638,6 +638,7 @@ export default function AdminPage() {
           onFechar={() => setConversaDe(null)}
           onRetomar={bot.retomar}
           onNuncaBot={bot.definirNuncaBot}
+          atualizacao={bot.dados}
         />
       )}
 
