@@ -8,6 +8,7 @@ import { ConfigFaltando, botDb, rpc, senhaValida } from "@/lib/botServidor";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
 type Mensagem = { midia_path: string | null; [k: string]: unknown };
 

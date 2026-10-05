@@ -16,6 +16,10 @@ export function botDb() {
   cliente ??= createClient<any, "bot">(url, chave, {
     db: { schema: "bot" },
     auth: { persistSession: false, autoRefreshToken: false },
+    // O Next guarda em cache o resultado de fetch (inclusive as chamadas RPC do Supabase). Sem isto a
+    // conversa de um cliente ficava "congelada" na primeira leitura: o "Nunca usar o bot" marcava no banco
+    // mas a caixa continuava desmarcada, e "Ver conversa" não mostrava mensagem nova.
+    global: { fetch: (entrada, init) => fetch(entrada, { ...init, cache: "no-store" }) },
   });
   return cliente;
 }

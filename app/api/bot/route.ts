@@ -13,6 +13,7 @@ import { ConfigFaltando, rpc, senhaValida } from "@/lib/botServidor";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
 function erro(e: unknown) {
   if (e instanceof ConfigFaltando) {
