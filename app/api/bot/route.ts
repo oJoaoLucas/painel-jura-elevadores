@@ -36,7 +36,7 @@ export async function GET(req: Request) {
     const params = new URL(req.url).searchParams;
     const dias = Math.min(365, Math.max(1, Number(params.get("dias")) || 30));
     const retornoDias = params.get("retorno") === "15" ? 15 : 30;
-    const [pedidos, pausados, numeros, config, dias_fechados, ignorados, retorno, status] = await Promise.all([
+    const [todosPedidos, todosPausados, numeros, config, dias_fechados, ignorados, todoRetorno, status] = await Promise.all([
       rpc("painel_atendimentos", { p_limite: 50 }),
       rpc("painel_pausados"),
       rpc("painel_numeros", { p_dias: dias }),
@@ -47,6 +47,12 @@ export async function GET(req: Request) {
       // se a função ainda não existir no banco, o painel abre igual, só sem o cartão do WhatsApp
       rpc("painel_status").catch(() => null),
     ]);
+    // Número marcado "nunca usar o bot" vai para a lista "Números sem bot" e sai das listas de cima.
+    const semBot = new Set((ignorados as { telefone: string }[]).map((i) => i.telefone));
+    const fora = <T extends { telefone: string }>(lista: T[]) => lista.filter((x) => !semBot.has(x.telefone));
+    const pedidos = fora(todosPedidos as { telefone: string }[]);
+    const pausados = fora(todosPausados as { telefone: string }[]);
+    const retorno = fora(todoRetorno as { telefone: string }[]);
     return NextResponse.json({ pedidos, pausados, numeros, config, dias_fechados, ignorados, retorno, retorno_dias: retornoDias, status });
   } catch (e) {
     return erro(e);
