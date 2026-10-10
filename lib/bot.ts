@@ -36,6 +36,9 @@ export type PedidoBot = {
   urgente: boolean;
   compareceu: boolean | null;
   nunca_bot: boolean;
+  /** Veio de anúncio do Meta (o Jurinha marca a origem; título do anúncio quando o Meta manda). */
+  anuncio?: boolean;
+  anuncio_titulo?: string | null;
 };
 
 export type MensagemConversa = {
