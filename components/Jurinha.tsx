@@ -202,7 +202,7 @@ export function ItemPedido({
               <IconClock className="h-3 w-3" /> Sem resposta {tempoDesde(p.criado_em, agora)}
             </Selo>
           )}
-          {p.anuncio && <Selo cor="#c084fc">veio do anúncio</Selo>}
+          {p.anuncio && <Selo cor="#c084fc">{/^site/i.test(p.anuncio_titulo ?? "") ? "veio do site" : "veio do anúncio"}</Selo>}
           {p.fora_horario && <Selo cor="#9aa3ad">fora do horário</Selo>}
           {motivo && (
             <Selo cor="#9aa3ad">
